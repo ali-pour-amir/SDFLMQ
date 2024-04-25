@@ -1,0 +1,71 @@
+from executable_class import *
+
+class class_name(PubSub_Base_Executable): ##CHANGE:: change class name
+    
+    ##Here you put the class specific variables
+    ##...
+    ##_________________________________________
+
+    def __init__(self,
+                 myID,
+                 broker_ip,
+                 broker_port,
+                 introduction_topic,
+                 controller_executable_topic,
+                 controller_echo_topic, 
+                 start_loop): 
+                ##CHANGE:: --> , <<Extended Parameters>> ...):
+        
+        
+        ## Here you initialize the class specific variables
+        ## ...
+        ##_________________________________________________
+
+        ##IMPORTANT:: This line of code is needed to append the name of newly defined class specific executables::
+        ## CHANGE:: --> self.executables.append([<<list of executables>>>])
+        ## ____________________________________________________________________________________________
+
+        #IMPORTANT:: DON'T CHANGE:: Let the base class initializer be at the buttom. This is for the case if client start loop is set to start rightaway.
+        PubSub_Base_Executable.__init__(self,
+                                        myID,
+                                        broker_ip,
+                                        broker_port,
+                                        introduction_topic,
+                                        controller_executable_topic,
+                                        controller_echo_topic,
+                                        start_loop) ## DON'T CHANGE
+        ##____________________________________________________________________________________________________________________________________________________
+
+    def execute_on_msg (self,client,userdata, msg):
+        PubSub_Base_Executable.execute_on_msg(self,client,userdata,msg)
+        msg_parts = str(msg.payload.decode()).split()
+        
+        ##IMPORTANT:: Here you extend the message parser to check for the class specific executables
+        ## CHANGE:: --> if msg_parts[0] == <<executable function name>>:
+            ##Here you execute accordingly, or simply just invoke the executable: example: self.<<executable name>>(parameterst)
+            ##__________________________________________________________________________________________________________________
+        ##________________________________________________________________________________
+
+    ##Here you define the new class specific executables:
+    ##...
+    ##___________________________________________________
+
+    ##Here you define the rest of the class logic:
+    ##...
+    ##___________________________________________________
+
+
+##Sample Program logic:
+
+# userID = input("Enter UserID: ")
+# print("User with ID=" + userID +" is created.")
+# exec_program = <<class name>>                         (myID = userID,
+#                                                        broker_ip = 'localhost',
+#                                                        broker_port = 1883,
+#                                                        introduction_topic='client_introduction',
+#                                                        controller_executable_topic='controller_executable',
+#                                                        controller_echo_topic="echo",
+#                                                        start_loop=False)
+# exec_program.base_loop();
+
+##____________________

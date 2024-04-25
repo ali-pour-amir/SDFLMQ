@@ -1,0 +1,31 @@
+[
+    {"name":"Lubu_FL_1",
+    "id":"Lubu_FL_1",
+    "type":"LOCAL VM",
+    "directory":"/home/etsamir/Desktop/ETS/projects/MQTT_Fleet_Control/Server/remote_controller/Lubu_FL_1/",
+    "broker":"localhost"},
+    
+    {"name":"Lubu_FL_2",
+    "id":"Lubu_FL_2",
+    "type":"LOCAL VM",
+    "directory":"/home/etsamir/Desktop/ETS/projects/MQTT_Fleet_Control/Server/remote_controller/Lubu_FL_2/",
+    "broker":"localhost"},
+
+    {"name":"Lubu_FL_3",
+    "id":"Lubu_FL_3",
+    "type":"LOCAL VM",
+    "directory":"/home/etsamir/Desktop/ETS/projects/MQTT_Fleet_Control/Server/remote_controller/Lubu_FL_3/",
+    "broker":"localhost"},
+    
+    {"name":"Lubu_FL_4",
+    "id":"Lubu_FL_4",
+    "type":"LOCAL VM",
+    "directory":"/home/etsamir/Desktop/ETS/projects/MQTT_Fleet_Control/Server/remote_controller/Lubu_FL_4/",
+    "broker":"localhost"},
+
+    {"name":"Lubu_FL_5",
+    "id":"Lubu_FL_5",
+    "type":"LOCAL VM",
+    "directory":"/home/etsamir/Desktop/ETS/projects/MQTT_Fleet_Control/Server/remote_controller/Lubu_FL_5/",
+    "broker":"localhost"}            
+]
