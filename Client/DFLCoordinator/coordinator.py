@@ -1,4 +1,4 @@
-from Base.executable_class import PubSub_Base_Executable
+from executable_class import PubSub_Base_Executable
 
 class DFLMQ_Coordinator(PubSub_Base_Executable) :
 
@@ -15,6 +15,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         self.CiTCoT = "Cli_to_Coo_T" # subscribe
 
         self.executables.append('order_client_resources')
+        self.executables.append('parse_client_stats')
 
         super().__init__(
                     myID , 
@@ -33,12 +34,18 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         header_parts = header_body[0].split('|')
         return header_parts
 
+    def parse_client_stats(self , msg) : 
+        print(msg)
+
     def execute_on_msg(self, client, userdata, msg) -> None :
         super().execute_on_msg(client, userdata, msg) 
         header_parts = self._get_header_body(msg)
 
         if header_parts[2] == 'order_client_resources' : 
             self.order_client_resources()
+
+        if header_parts[2] == 'parse_client_stats' : 
+            self.parse_client_stats(msg)
 
     def order_client_resources(self) : 
         self.publish(self.CoTClT , "echo_resources" , "")
