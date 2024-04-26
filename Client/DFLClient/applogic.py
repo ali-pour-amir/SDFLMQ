@@ -54,6 +54,7 @@ class DFLMQ_Client(PubSub_Base_Executable) :
 
         res_msg = str(resources) # TODO : format the dictionary as string, later 
         self.publish(topic=self.controller_echo_topic,func_name="echo_resources",msg=res_msg)
+        self.publish(topic=self.CiTCoT,func_name="parse_client_stats",msg=res_msg)
 
 
 userID = input("Enter UserID: ")
