@@ -1,4 +1,4 @@
-from Client.Base.executable_class import PubSub_Base_Executable
+from executable_class import PubSub_Base_Executable
 import psutil
 
 class MQTT1(PubSub_Base_Executable) :
@@ -24,7 +24,7 @@ class MQTT1(PubSub_Base_Executable) :
         
     def _get_header_body(self , msg) -> list :
         header_body = str(msg.payload.decode()).split('::')
-        log.info("MESSAGE Header: " + header_body[0])
+        print("MESSAGE Header: " + header_body[0])
 
         header_parts = header_body[0].split('|')
         return header_parts
