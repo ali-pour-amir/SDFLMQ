@@ -25,7 +25,8 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                     controller_executable_topic , 
                     controller_echo_topic , 
                     start_loop)
-
+        
+        self.client.subscribe(self.CiTCoT)
         
     def _get_header_body(self , msg) -> list :
         header_body = str(msg.payload.decode()).split('::')
@@ -64,3 +65,5 @@ exec_program = DFLMQ_Coordinator(myID = userID,
 )
 
 exec_program.base_loop();
+
+
