@@ -1,4 +1,9 @@
 from executable_class import PubSub_Base_Executable
+from aggregator import dflmq_aggregator
+from trainer import dflmq_trainer
+from application_logic import dflmq_client_app_logic
+
+import numpy as np
 import psutil
 
 class DFLMQ_Client(PubSub_Base_Executable) :
@@ -11,9 +16,12 @@ class DFLMQ_Client(PubSub_Base_Executable) :
                  controller_echo_topic : str ,
                  start_loop : bool) -> None : 
         
+        self.client_logic = dflmq_client_app_logic()
+        self.trainer = dflmq_trainer()
+        self.aggregator = dflmq_aggregator()
+
         self.CoTClT = "Coo_to_Cli_T"
         self.CiTCoT = "Cli_to_Coo_T"
-        
         self.executables.append('echo_resources')
         
         super().__init__(
@@ -41,6 +49,10 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         if header_parts[2] == 'echo_resources' : 
             self.echo_resources()
 
+        self.client_logic._execute_on_msg(msg)
+        self.trainer._execute_on_msg(msg)
+        self.aggregator._execute_on_msg(msg)
+
     def echo_resources(self) -> None : 
         resources = {
             'cpu_count'     : psutil.cpu_count() ,
@@ -49,8 +61,7 @@ class DFLMQ_Client(PubSub_Base_Executable) :
             'cpu_stats'     : psutil.cpu_stats() ,
             'net_stats'     : psutil.net_if_stats() ,
             'ram_usage'     : psutil.virtual_memory()[3]/1000000000 ,
-            'net_counters'  : psutil.net_io_counters() ,
-        }
+            'net_counters'  : psutil.net_io_counters()}
 
         res_msg = str(resources) # TODO : format the dictionary as string, later 
         self.publish(topic=self.controller_echo_topic,func_name="echo_resources",msg=res_msg)
@@ -68,5 +79,4 @@ exec_program = DFLMQ_Client(myID = userID,
         controller_echo_topic="echo",
         start_loop=False
 )
-
 exec_program.base_loop();

@@ -1,22 +1,38 @@
-class dflmq_trainer():
-    def __init__():
-        return 0
-    
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
 
-    def client_update(client_model, optimizer, train_loader, epoch=5):
-    """
-    This function updates/trains client model on client data
-    """
-    model.train()
-    for e in range(epoch):
-        for batch_idx, (data, target) in enumerate(train_loader):
-            data, target = data, target
-            optimizer.zero_grad()
-            output = client_model(data)
-            loss = F.nll_loss(output, target)
-            loss.backward()
-            optimizer.step()
-    return loss.item()
+class dflmq_trainer():
+    def __init__(self, ml_model, optimizer) -> None:
+        
+        self.executables = []
+        self.client_model = ml_model
+        self. optimizer = optimizer
     
+  
+    def get_training_dataset(self,dataset):
+        self.training_dataset = dataset
+
+    def client_update(self, client_model, optimizer, training_dataset, round=1):
+    #This function updates/trains client model on client data
+        self.client_model.train()
+        for e in range(round):
+            for batch_idx, (data, target) in enumerate(self.training):
+                data, target = data, target
+                optimizer.zero_grad()
+                output = client_model(data)
+                loss = F.nll_loss(output, target)
+                loss.backward()
+                optimizer.step()
+        return loss.item()
+
+    def _execute_on_msg(self, msg,_get_header_body_func):
+        header_parts = _get_header_body_func(msg)
+
+        # if header_parts[2] == '' : 
+        #     self.()
+        
     
     
