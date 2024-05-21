@@ -4,13 +4,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-
 class dflmq_aggregator():
     
-    def __init__(self, initial_global_model)-> None:
-        self. global_model = initial_global_model
-        self.test_dataset = []
-        self.executables = ['set_agg_test_dataset', 'fedAvg', 'agg_test']
+    def __init__(self)-> None:
+        self. global_model = None
+        self.test_dataset = None
+        self.executables = ['set_agg_test_dataset', 'agg_test']
 
     def set_agg_test_dataset(self,dataset):
         self.test_dataset = dataset

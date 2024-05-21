@@ -16,14 +16,15 @@ class DFLMQ_Client(PubSub_Base_Executable) :
                  controller_echo_topic : str ,
                  start_loop : bool) -> None : 
         
-        self.client_logic = dflmq_client_app_logic()
-        self.trainer = dflmq_trainer(None,None)
-        self.aggregator = dflmq_aggregator(None)
+        self.client_logic   = dflmq_client_app_logic(is_simulating=True)
+        self.trainer        = dflmq_trainer()
+        self.aggregator     = dflmq_aggregator()
 
         self.CoTClT = "Coo_to_Cli_T"
         self.CiTCoT = "Cli_to_Coo_T"
-        
-        self.executables.append('echo_resources')
+        self.PSTCoT = "PS_to_Cli_T"
+
+        self.executables.append('echo_resources', 'fedAvg', 'client_update')
         self.executables.extend(self.client_logic.executables)
         self.executables.extend(self.trainer.executables)
         self.executables.extend(self.aggregator.executables)
@@ -38,6 +39,7 @@ class DFLMQ_Client(PubSub_Base_Executable) :
                     start_loop)
 
         self.client.subscribe(self.CoTClT)
+        self.client.subscribe(self.PSTCoT)
         
     def _get_header_body(self , msg) -> list :
         header_body = str(msg.payload.decode()).split('::')
@@ -48,7 +50,7 @@ class DFLMQ_Client(PubSub_Base_Executable) :
 
     def _execute_on_msg(self,msg):
         header_parts = self._get_header_body(msg)
-
+        
         if header_parts[2] == 'echo_resources' : 
             self.echo_resources()
             
@@ -88,4 +90,4 @@ exec_program = DFLMQ_Client(myID = userID,
         controller_echo_topic="echo",
         start_loop=False
 )
-exec_program.base_loop();
+exec_program.base_loop()

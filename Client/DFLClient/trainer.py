@@ -5,11 +5,14 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 class dflmq_trainer():
-    def __init__(self, ml_model, optimizer) -> None:
+    def __init__(self) -> None:
         
-        self.executables = ['set_training_dataset', 'client_update']
-        self.client_model = ml_model
-        self. optimizer = optimizer
+        self.executables = ['set_training_dataset']
+        self.client_model = None
+        self. optimizer = optim.SGD(self.client_model.parameters(), lr=0.1) 
+
+        # ############### optimizer ################
+        # opt = optim.SGD(self.client_model.parameters(), lr=0.1)
     
   
     def set_training_dataset(self,dataset):
