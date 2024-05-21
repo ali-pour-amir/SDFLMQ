@@ -17,12 +17,16 @@ class DFLMQ_Client(PubSub_Base_Executable) :
                  start_loop : bool) -> None : 
         
         self.client_logic = dflmq_client_app_logic()
-        self.trainer = dflmq_trainer()
-        self.aggregator = dflmq_aggregator()
+        self.trainer = dflmq_trainer(None,None)
+        self.aggregator = dflmq_aggregator(None)
 
         self.CoTClT = "Coo_to_Cli_T"
         self.CiTCoT = "Cli_to_Coo_T"
+        
         self.executables.append('echo_resources')
+        self.executables.extend(self.client_logic.executables)
+        self.executables.extend(self.trainer.executables)
+        self.executables.extend(self.aggregator.executables)
         
         super().__init__(
                     myID , 
@@ -42,16 +46,21 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         header_parts = header_body[0].split('|')
         return header_parts
 
-    def execute_on_msg(self, client, userdata, msg) -> None :
-        super().execute_on_msg(client, userdata, msg) 
+    def _execute_on_msg(self,msg):
         header_parts = self._get_header_body(msg)
 
         if header_parts[2] == 'echo_resources' : 
             self.echo_resources()
-
-        self.client_logic._execute_on_msg(msg)
-        self.trainer._execute_on_msg(msg)
-        self.aggregator._execute_on_msg(msg)
+            
+    def execute_on_msg(self, client, userdata, msg) -> None :
+        
+        super().execute_on_msg(client, userdata, msg) 
+        
+        self._execute_on_msg(msg)
+        
+        self.client_logic._execute_on_msg(msg, self._get_header_body)
+        self.trainer._execute_on_msg(msg, self._get_header_body)
+        self.aggregator._execute_on_msg(msg, self._get_header_body)
 
     def echo_resources(self) -> None : 
         resources = {
@@ -72,7 +81,7 @@ userID = input("Enter UserID: ")
 print("User with ID=" + userID +" is created.")
 
 exec_program = DFLMQ_Client(myID = userID,
-        broker_ip = 'broker.emqx.io' ,
+        broker_ip = 'localhost' ,
         broker_port = 1883,
         introduction_topic='client_introduction',
         controller_executable_topic='controller_executable',

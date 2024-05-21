@@ -1,13 +1,13 @@
 class dflmq_client_app_logic():
     
-    def __init__(self):
-        self.executables = []
-        return 0
+    def __init__(self)-> None:
+        self.executables = ['set_logic_model', 'collect_logic_data']
 
-    def set_model(self):
+
+    def set_logic_model(self):
         return 0
     
-    def collect_data(self):
+    def collect_logic_data(self):
         return 0
 
     def get_model(self):

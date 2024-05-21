@@ -7,12 +7,12 @@ import torch.optim as optim
 
 class dflmq_aggregator():
     
-    def __init__(self, initial_global_model):
+    def __init__(self, initial_global_model)-> None:
         self. global_model = initial_global_model
         self.test_dataset = []
-        self.exectables = []
+        self.executables = ['set_agg_test_dataset', 'fedAvg', 'agg_test']
 
-    def get_test_dataset(self,dataset):
+    def set_agg_test_dataset(self,dataset):
         self.test_dataset = dataset
 
     def fedAvg(self, client_models):
@@ -27,7 +27,7 @@ class dflmq_aggregator():
             model.load_state_dict(self.global_model.state_dict())
             
    
-    def test(self, test_dataset):
+    def agg_test(self, test_dataset):
         """This function test the global model on test data and returns test loss and test accuracy """
         self.global_model.eval()
         test_loss = 0

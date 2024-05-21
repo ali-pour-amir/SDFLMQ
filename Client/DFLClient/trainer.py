@@ -7,12 +7,12 @@ import torch.optim as optim
 class dflmq_trainer():
     def __init__(self, ml_model, optimizer) -> None:
         
-        self.executables = []
+        self.executables = ['set_training_dataset', 'client_update']
         self.client_model = ml_model
         self. optimizer = optimizer
     
   
-    def get_training_dataset(self,dataset):
+    def set_training_dataset(self,dataset):
         self.training_dataset = dataset
 
     def client_update(self, client_model, optimizer, training_dataset, round=1):
