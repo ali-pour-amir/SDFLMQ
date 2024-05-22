@@ -80,6 +80,16 @@ class PubSub_Base_Executable:
         def MQTT_msg_craft(self,topic,func_name,msg):
             payload = self.id +"|" + topic + "|" + func_name + "|" + T.asctime() + "::" + str(msg)
             return payload
+        
+        def MQTT_msg_split(self,msg,batch_size):
+            payload_id = 0
+            msg_splits = []
+            for i in range(0,len(msg),batch_size):
+                if((i*batch_size)+batch_size >= len(msg)):
+                    msg_splits.append([payload_id,i,msg[(i*batch_size):len(msg)]])
+                else:                  
+                    msg_splits.append([payload_id,i,msg[(i*batch_size):(i*batch_size)+batch_size]])
+            return [msg_splits]
 
         def publish(self, topic, func_name, msg):
             payload = self.MQTT_msg_craft(topic,func_name,msg)

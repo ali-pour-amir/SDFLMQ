@@ -16,7 +16,8 @@ class DFLMQ_Client(PubSub_Base_Executable) :
                  controller_echo_topic : str ,
                  start_loop : bool) -> None : 
         
-        self.client_logic   = dflmq_client_app_logic(is_simulating=True)
+        self.client_logic   = dflmq_client_app_logic(id=self.id,
+                                                     is_simulating=True)
         self.trainer        = dflmq_trainer()
         self.aggregator     = dflmq_aggregator()
 
@@ -24,7 +25,7 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         self.CiTCoT = "Cli_to_Coo_T"
         self.PSTCoT = "PS_to_Cli_T"
 
-        self.executables.append('echo_resources', 'fedAvg', 'client_update')
+        self.executables.extend(['echo_resources', 'fedAvg', 'client_update'])
         self.executables.extend(self.client_logic.executables)
         self.executables.extend(self.trainer.executables)
         self.executables.extend(self.aggregator.executables)

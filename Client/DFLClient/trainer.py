@@ -9,7 +9,7 @@ class dflmq_trainer():
         
         self.executables = ['set_training_dataset']
         self.client_model = None
-        self. optimizer = optim.SGD(self.client_model.parameters(), lr=0.1) 
+        self. optimizer = optim.SGD
 
         # ############### optimizer ################
         # opt = optim.SGD(self.client_model.parameters(), lr=0.1)
@@ -18,17 +18,17 @@ class dflmq_trainer():
     def set_training_dataset(self,dataset):
         self.training_dataset = dataset
 
-    def client_update(self, client_model, optimizer, training_dataset, round=1):
+    def client_update(self, training_dataset, round=1):##TODO: Don't forget to reset the optimizer after each round, since it is a class variable.
     #This function updates/trains client model on client data
         self.client_model.train()
         for e in range(round):
             for batch_idx, (data, target) in enumerate(self.training):
                 data, target = data, target
-                optimizer.zero_grad()
-                output = client_model(data)
+                self.optimizer(self.client_model.parameters(), lr=0.1) .zero_grad()
+                output = self.client_model(data)
                 loss = F.nll_loss(output, target)
                 loss.backward()
-                optimizer.step()
+                self.optimizer.step()
         return loss.item()
 
     def _execute_on_msg(self, msg,_get_header_body_func):
