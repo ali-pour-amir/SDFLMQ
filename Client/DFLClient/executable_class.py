@@ -26,6 +26,7 @@ class PubSub_Base_Executable:
             self.controller_executable_topic = controller_executable_topic
             self.controller_echo_topic = controller_echo_topic
 
+            self.msg_batch_queue = []
 
             self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
             self.client.on_connect = self.on_connect
@@ -77,10 +78,28 @@ class PubSub_Base_Executable:
             client.subscribe(self.controller_executable_topic)
             print("Subscribed to " + self.controller_executable_topic)
 
-        def MQTT_msg_craft(self,topic,func_name,msg):
-            payload = self.id +"|" + topic + "|" + func_name + "|" + T.asctime() + "::" + str(msg)
+        def MQTT_msg_craft(self,topic,func_name,msg,is_split = False):
+            if(is_split):
+                payload = self.id +"|" + topic + "|" + func_name + "|" + T.asctime() + "::" + str(msg) + "|" + "is_split" + ":" + "True"
+            else:
+                payload = self.id +"|" + topic + "|" + func_name + "|" + T.asctime() + "::" + str(msg)
             return payload
         
+        def msg_sort_key(self,l):
+            return int(l[1])
+        
+        def MQTT_msg_merge(self,payload_id):
+            msg_batches = []
+            for batch in self.msg_batch_queue:
+                if batch[0] == payload_id:
+                    msg_batches.append(batch)
+
+            msg_batches.sort(key=self.msg_sort_key)
+            msg_payload = ""
+            msg_payload = msg_payload.join(msg_batches)
+            return msg_payload
+
+
         def MQTT_msg_split(self,msg,batch_size):
             payload_id = 0
             msg_splits = []
@@ -88,7 +107,7 @@ class PubSub_Base_Executable:
                 if((i*batch_size)+batch_size >= len(msg)):
                     msg_splits.append([payload_id,i,msg[(i*batch_size):len(msg)]])
                 else:                  
-                    msg_splits.append([payload_id,i,msg[(i*batch_size):(i*batch_size)+batch_size]])
+                    msg_splits.append([payload_id,i,msg[(i*batch_size):(i*batch_size)+batch_size]]) #[payload_id, batch_id, msg_payload]
             return [msg_splits]
 
         def publish(self, topic, func_name, msg):
