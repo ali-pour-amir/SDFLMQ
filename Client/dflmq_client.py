@@ -1,7 +1,8 @@
-from executable_class import PubSub_Base_Executable
-from aggregator import dflmq_aggregator
-from trainer import dflmq_trainer
-from application_logic import dflmq_client_app_logic
+
+from Global.executable_class import PubSub_Base_Executable
+from Client_Classes.aggregator import dflmq_aggregator
+from Client_Classes.trainer import dflmq_trainer
+from Client_Classes.application_logic import dflmq_client_app_logic
 
 import numpy as np
 import psutil
@@ -42,28 +43,24 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         self.client.subscribe(self.CoTClT)
         self.client.subscribe(self.PSTCoT)
         
-    def _get_header_body(self , msg) -> list :
-        header_body = str(msg.payload.decode()).split('::')
-        print("MESSAGE Header: " + header_body[0])
+    # def _get_header_body(self , msg) -> list :
+    #     header_body = str(msg.payload.decode()).split('::')
+    #     print("MESSAGE Header: " + header_body[0])
 
-        header_parts = header_body[0].split('|')
-        return header_parts
+    #     header_parts = header_body[0].split('|')
+    #     return header_parts
 
-    def _execute_on_msg(self,msg):
-        header_parts = self._get_header_body(msg)
-        
+    def _execute_on_msg  (self, header_parts, body): 
         if header_parts[2] == 'echo_resources' : 
             self.echo_resources()
             
-    def execute_on_msg(self, client, userdata, msg) -> None :
+    def execute_on_msg(self, header_parts, body) -> None :
+        super().execute_on_msg(header_parts, body) 
+        self._execute_on_msg(header_parts, body)
         
-        super().execute_on_msg(client, userdata, msg) 
-        
-        self._execute_on_msg(msg)
-        
-        self.client_logic._execute_on_msg(msg, self._get_header_body)
-        self.trainer._execute_on_msg(msg, self._get_header_body)
-        self.aggregator._execute_on_msg(msg, self._get_header_body)
+        self.client_logic._execute_on_msg(header_parts, body)
+        self.trainer._execute_on_msg(header_parts, body)
+        self.aggregator._execute_on_msg(header_parts, body)
 
     def echo_resources(self) -> None : 
         resources = {

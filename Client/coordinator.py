@@ -1,4 +1,4 @@
-from executable_class import PubSub_Base_Executable
+from Global.executable_class import PubSub_Base_Executable
 
 class DFLMQ_Coordinator(PubSub_Base_Executable) :
 
@@ -28,25 +28,24 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         
         self.client.subscribe(self.CiTCoT)
         
-    def _get_header_body(self , msg) -> list :
-        header_body = str(msg.payload.decode()).split('::')
-        print("MESSAGE Header: " + header_body[0])
-
-        header_parts = header_body[0].split('|')
-        return header_parts
+    # def _get_header_body(self , msg) -> list :
+    #     header_body = str(msg.payload.decode()).split('::')
+    #     print("MESSAGE Header: " + header_body[0])
+    #     header_parts = header_body[0].split('|')
+    #     return header_parts
 
     def parse_client_stats(self , msg) : 
         print(msg)
 
-    def execute_on_msg(self, client, userdata, msg) -> None :
-        super().execute_on_msg(client, userdata, msg) 
-        header_parts = self._get_header_body(msg)
+    def execute_on_msg(self, header_parts, body) -> None :
+        super().execute_on_msg(header_parts, body) 
+        # header_parts = self._get_header_body(msg)
 
         if header_parts[2] == 'order_client_resources' : 
             self.order_client_resources()
 
         if header_parts[2] == 'parse_client_stats' : 
-            self.parse_client_stats(msg)
+            self.parse_client_stats(body)
 
     def order_client_resources(self) : 
         self.publish(self.CoTClT , "echo_resources" , "")
@@ -64,6 +63,6 @@ exec_program = DFLMQ_Coordinator(myID = userID,
         start_loop=False
 )
 
-exec_program.base_loop();
+exec_program.base_loop()
 
 

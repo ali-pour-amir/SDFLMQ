@@ -150,9 +150,10 @@ class Server_Controller:
                 self.registered_executables.append(exec_item)
     
 
-    def MQTT_msg_craft(self,topic,func_name,msg):
-            payload = "MQTT_FC" +"|" + topic + "|" + func_name + "|" + T.asctime() + "::" + str(msg)
+    def MQTT_msg_craft(self,topic,func_name,msg,is_split = False, payload_id = '-1', batch_index = -1):
+            payload = "MQTT_FC" + "|" + topic + "|" + func_name + "|" + T.asctime() + "|" + str(is_split) + "|" + payload_id + "|" + str(batch_index) + "|" + "::" + str(msg)
             return payload
+        
 
 
     def Log(self,msg):

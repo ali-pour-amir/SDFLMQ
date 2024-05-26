@@ -1,5 +1,8 @@
 import paho.mqtt.client as mqtt
 import time as T
+import re
+msg_size_limit = 10000000 #characters
+
 class PubSub_Base_Executable:
 
 #EXECUTABLE PARAMS: 
@@ -26,11 +29,11 @@ class PubSub_Base_Executable:
             self.controller_executable_topic = controller_executable_topic
             self.controller_echo_topic = controller_echo_topic
 
-            self.msg_batch_queue = []
+            self.msg_batch_queue = {} #{payload_id, [batch_id, msg_payload]}
 
             self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
             self.client.on_connect = self.on_connect
-            self.client.on_message = self.execute_on_msg
+            self.client.on_message = self.msg_parse
             self.client.connect(self.broker_ip,
                                 self.broker_port,
                                 self.connection_timeout)
@@ -43,76 +46,112 @@ class PubSub_Base_Executable:
                
 
 #SECTION:: CONNECTIVITY
-        def execute_on_msg (self,client,userdata, msg):                             ### TO OVERRIDE IN SUCCEEDING CLASSES
 
-            try:
-
+        def msg_parse(self, client, userdata, msg):
+            # try: 
                 #print("MESSAGE: " + msg.payload.decode())
                 header_body = str(msg.payload.decode()).split('::')
-                print("MESSAGE Header: " + header_body[0])
+                # print("MESSAGE Header: " + header_body[0])
                 header_parts = header_body[0].split('|')
-
+                body = ""
                 if(not(header_parts[2] in self.executables)):
                     self.ERROR_executable_not_defined(msg.payload.decode())
                     return
+                if(header_parts[4] == "True"):
+                    print("Received multi batch message. Batch " + str(header_parts[6]))
+                    if(header_parts[6] != str(-1)):
+                        if(header_parts[5] in self.msg_batch_queue):
+                            self.msg_batch_queue[header_parts[5]].append([header_parts[6],header_body[1]])
+                            # print(" batch index: " + str(self.msg_batch_queue[header_parts[5]][len(self.msg_batch_queue[header_parts[5]])-1][0]))
+                        else:
+                            self.msg_batch_queue[header_parts[5]] = [[header_parts[6],header_body[1]]]
+                        return
+                    else:
+                        print("All batches received.")
+                        body = self.MQTT_msg_merge(header_parts[5])
+                else:
+                    body = header_body[1]
+                self.execute_on_msg(header_parts, body)
+            # except:
+            #     print("Message was not right!")
 
-                if header_parts[2] == 'print':
-                    body_split = header_body[1].split('-m ')[1].split(';')[0]
-                    self.print(body_split)
 
-                if header_parts[2] == 'echo_name':
-                    self.echo_name()
-                
-                if header_parts[2] == 'echo_msg':
-                    self.echo_msg(header_body[1])
-                
-                if header_parts[2] == 'publish_executables':
-                    self.publish_executables()    
-                
-            except:
-                print("Message was not right!")
+        def execute_on_msg (self, header_parts, body):                             ### TO OVERRIDE IN SUCCEEDING CLASSES            
+            if header_parts[2] == 'print':
+                body_split = body.split('-m ')[1].split(';')[0]
+                self.print(body_split)
 
+            if header_parts[2] == 'echo_name':
+                self.echo_name()
+            
+            if header_parts[2] == 'echo_msg':
+                self.echo_msg(body)
+            
+            if header_parts[2] == 'publish_executables':
+                self.publish_executables()    
+                
+            
        
         def on_connect(self,client,userdata, flags, rc):
             print("Connected with result code " + str(rc))
             client.subscribe(self.controller_executable_topic)
             print("Subscribed to " + self.controller_executable_topic)
 
-        def MQTT_msg_craft(self,topic,func_name,msg,is_split = False):
-            if(is_split):
-                payload = self.id +"|" + topic + "|" + func_name + "|" + T.asctime() + "::" + str(msg) + "|" + "is_split" + ":" + "True"
-            else:
-                payload = self.id +"|" + topic + "|" + func_name + "|" + T.asctime() + "::" + str(msg)
+        def MQTT_msg_craft(self,topic,func_name,msg,is_split = False, payload_id = '-1', batch_index = -1):
+            payload = self.id + "|" + topic + "|" + func_name + "|" + T.asctime() + "|" + str(is_split) + "|" + payload_id + "|" + str(batch_index) +  "::" + str(msg)
             return payload
         
         def msg_sort_key(self,l):
-            return int(l[1])
+            return int(l[0])
         
         def MQTT_msg_merge(self,payload_id):
-            msg_batches = []
-            for batch in self.msg_batch_queue:
-                if batch[0] == payload_id:
-                    msg_batches.append(batch)
+            print("Merging batches.")
+            
+            #msg_batches = []
+            # for batch in self.msg_batch_queue[payload_id]:
+            #     msg_batches.append(batch)            
+            # msg_batches.sort(key=self.msg_sort_key)
 
-            msg_batches.sort(key=self.msg_sort_key)
+            self.msg_batch_queue[payload_id].sort(key=self.msg_sort_key)
             msg_payload = ""
-            msg_payload = msg_payload.join(msg_batches)
+            for batch in self.msg_batch_queue[payload_id]:
+                msg_payload = msg_payload + batch[1]
+            
+            self.msg_batch_queue.pop(payload_id)
+            print(len(self.msg_batch_queue))
+            print("Batches merged.")
             return msg_payload
 
-
         def MQTT_msg_split(self,msg,batch_size):
-            payload_id = 0
+            payload_id = re.sub('[ :]','',str(T.asctime()))
             msg_splits = []
-            for i in range(0,len(msg),batch_size):
-                if((i*batch_size)+batch_size >= len(msg)):
-                    msg_splits.append([payload_id,i,msg[(i*batch_size):len(msg)]])
+            print("Splitting payload into " + str(int(len(msg)/batch_size)+1) + " batches.")
+            print("Payload id is: " + payload_id)
+            for j in range(0,len(msg),batch_size):
+                i = int(j/batch_size)
+                if((j)+batch_size >= len(msg)):
+                    msg_splits.append([payload_id,i,msg[(j):len(msg)]])
                 else:                  
-                    msg_splits.append([payload_id,i,msg[(i*batch_size):(i*batch_size)+batch_size]]) #[payload_id, batch_id, msg_payload]
-            return [msg_splits]
+                    msg_splits.append([payload_id,i,msg[(j):(j)+batch_size]]) #[payload_id, batch_id, msg_payload]
+            return msg_splits
 
         def publish(self, topic, func_name, msg):
-            payload = self.MQTT_msg_craft(topic,func_name,msg)
-            self.client.publish(topic, payload = payload)
+            is_split = False
+            payload = ""
+            if(len(msg)>msg_size_limit):
+                is_split = True
+                print("Message payload too large!")
+                msg_batches = self.MQTT_msg_split(msg,msg_size_limit)
+                for batch in msg_batches:
+                    print("Publishing batch index " + str(batch[1]))
+                    payload = self.MQTT_msg_craft(topic,func_name,batch[2],True,batch[0],batch[1])
+                    self.client.publish(topic, payload = payload)
+                #End of batch::
+                payload = self.MQTT_msg_craft(topic,func_name,"",True,batch[0],-1)
+                self.client.publish(topic, payload = payload)
+            else:
+                payload = self.MQTT_msg_craft(topic,func_name,msg)
+                self.client.publish(topic, payload = payload)
 #SECTION:: EXECUTABLES
     
         def echo_name(self):

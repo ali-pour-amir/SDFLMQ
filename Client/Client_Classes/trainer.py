@@ -31,9 +31,8 @@ class dflmq_trainer():
                 self.optimizer.step()
         return loss.item()
 
-    def _execute_on_msg(self, msg,_get_header_body_func):
-        header_parts = _get_header_body_func(msg)
-
+    def _execute_on_msg(self,header_parts, body):
+        return 0
         # if header_parts[2] == '' : 
         #     self.()
         

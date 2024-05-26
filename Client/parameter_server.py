@@ -1,10 +1,9 @@
+import json
 import torch
 import torch.nn as nn
-from custom_models import VGG
-from custom_datasets import CIFAR10
-import json
-
-from executable_class import PubSub_Base_Executable
+from Global.custom_models import VGG
+from Global.custom_datasets import CIFAR10
+from Global.executable_class import PubSub_Base_Executable
 
 class dflmq_parameter_server(PubSub_Base_Executable):
     
@@ -37,22 +36,20 @@ class dflmq_parameter_server(PubSub_Base_Executable):
 
         self.client.subscribe(self.CoTPST)
 
-    def _get_header_body(self , msg) -> list :
-        header_body = str(msg.payload.decode()).split('::')
-        print("MESSAGE Header: " + header_body[0])
-        header_parts = header_body[0].split('|')
-        return header_parts
+    # def _get_header_body(self , msg) -> list :
+    #     header_body = str(msg.payload.decode()).split('::')
+    #     print("MESSAGE Header: " + header_body[0])
+    #     header_parts = header_body[0].split('|')
+    #     return header_parts
 
-    def _execute_on_msg(self,msg):
-        header_parts = self._get_header_body(msg)
-
+    def _execute_on_msg(self,header_parts, body):
+        # header_parts = self._get_header_body(msg)
         if header_parts[2] == 'broadcast_model' : 
             self.broadcast_model()
             
-    def execute_on_msg(self, client, userdata, msg) -> None :
-        
-        super().execute_on_msg(client, userdata, msg)
-        self._execute_on_msg(msg)
+    def execute_on_msg(self,header_parts, body) -> None :
+        super().execute_on_msg(header_parts, body)
+        self._execute_on_msg(header_parts, body)
         
     def broadcast_model(self):
         weights_and_biases = {}

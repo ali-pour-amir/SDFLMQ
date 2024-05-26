@@ -1,4 +1,4 @@
-from custom_models import VGG
+from Global.custom_models import VGG
 import json
 import torch
 
@@ -32,15 +32,12 @@ class dflmq_client_app_logic():
     def get_data(self):
         return 0
     
-    def _execute_on_msg(self, msg,_get_header_body_func):
-        header_parts = _get_header_body_func(msg)
-        header_body = str(msg.payload.decode()).split('::')
-        
+    def _execute_on_msg(self, header_parts, body):
         if header_parts[2] == 'collect_logic_model':
-            id = header_body[1].split('-id ')[1].split(' -model_name ')[0]
+            id = body.split('-id ')[1].split(' -model_name ')[0]
             if(id == 'all' or id == self.id):
-                model_name = header_body[1].split('-model_name ')[1].split(' -model_params ')[0]
-                model_params = header_body[1].split(' -model_params ')[1].split(';')[0]
+                model_name = body.split('-model_name ')[1].split(' -model_params ')[0]
+                model_params = body.split(' -model_params ')[1].split(';')[0]
             
                 self.construct_logic_model(model_name)
                 self.collect_logic_model(model_params)
