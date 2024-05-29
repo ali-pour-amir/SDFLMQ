@@ -17,19 +17,11 @@ class DFLMQ_Client(PubSub_Base_Executable) :
                  controller_echo_topic : str ,
                  start_loop : bool) -> None : 
         
-        self.client_logic   = dflmq_client_app_logic(id=self.id,
-                                                     is_simulating=True)
-        self.trainer        = dflmq_trainer()
-        self.aggregator     = dflmq_aggregator()
-
+        
         self.CoTClT = "Coo_to_Cli_T"
         self.CiTCoT = "Cli_to_Coo_T"
         self.PSTCoT = "PS_to_Cli_T"
-
-        self.executables.extend(['echo_resources', 'fedAvg', 'client_update'])
-        self.executables.extend(self.client_logic.executables)
-        self.executables.extend(self.trainer.executables)
-        self.executables.extend(self.aggregator.executables)
+        self.PSTCliIDT = "PS_to_Cli_ID_"
         
         super().__init__(
                     myID , 
@@ -40,8 +32,19 @@ class DFLMQ_Client(PubSub_Base_Executable) :
                     controller_echo_topic , 
                     start_loop)
 
+        self.client_logic   = dflmq_client_app_logic(id=self.id,
+                                                     is_simulating=True)
+        self.trainer        = dflmq_trainer()
+        self.aggregator     = dflmq_aggregator()
+
+        self.executables.extend(['echo_resources', 'fedAvg', 'client_update'])
+        self.executables.extend(self.client_logic.executables)
+        self.executables.extend(self.trainer.executables)
+        self.executables.extend(self.aggregator.executables)
+        
         self.client.subscribe(self.CoTClT)
         self.client.subscribe(self.PSTCoT)
+        self.client.subscribe(self.PSTCliIDT + self.id)
         
     # def _get_header_body(self , msg) -> list :
     #     header_body = str(msg.payload.decode()).split('::')
@@ -55,6 +58,7 @@ class DFLMQ_Client(PubSub_Base_Executable) :
             self.echo_resources()
             
     def execute_on_msg(self, header_parts, body) -> None :
+        
         super().execute_on_msg(header_parts, body) 
         self._execute_on_msg(header_parts, body)
         
