@@ -36,13 +36,12 @@ class dflmq_client_app_logic():
         decompressed_data = zlib.decompress(decoded_compressed_data)
         buffer_from_string = BytesIO(decompressed_data)
         loaded_dataset = torch.load(buffer_from_string)
-        if(type == "training"):
-            self.simulated_logic_data_train = loaded_dataset
-            self.simulated_logic_dataset_name = dataset_name
-            print("Number of images in the loaded training dataset:", len(loaded_dataset["trainset"]))
-            print("Number of images in the loaded testing dataset:", len(loaded_dataset["testset"]))
-        elif(type == "testing"):
-            self.simulated_logic_data_test = loaded_dataset
+        
+        self.simulated_logic_data_train = loaded_dataset["trainset"]
+        self.simulated_logic_dataset_name = dataset_name  
+        self.simulated_logic_data_test = loaded_dataset["testset"]
+        print("Number of images in the loaded training dataset:", len(loaded_dataset["trainset"]))
+        print("Number of images in the loaded testing dataset:", len(loaded_dataset["testset"]))
         
 
     def get_model(self):

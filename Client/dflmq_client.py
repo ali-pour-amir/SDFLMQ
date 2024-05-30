@@ -37,11 +37,11 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         self.trainer        = dflmq_trainer()
         self.aggregator     = dflmq_aggregator()
 
-        self.executables.extend(['echo_resources', 'fedAvg', 'client_update'])
+        self.executables.extend(['echo_resources', 'client_update','fed_average','set_aggregator'])
         self.executables.extend(self.client_logic.executables)
         self.executables.extend(self.trainer.executables)
         self.executables.extend(self.aggregator.executables)
-        
+
         self.client.subscribe(self.CoTClT)
         self.client.subscribe(self.PSTCoT)
         self.client.subscribe(self.PSTCliIDT + self.id)
@@ -56,7 +56,24 @@ class DFLMQ_Client(PubSub_Base_Executable) :
     def _execute_on_msg  (self, header_parts, body): 
         if header_parts[2] == 'echo_resources' : 
             self.echo_resources()
-            
+        if header_parts[2] == 'client_update' : 
+            self.trainer.client_update(self.client_logic.simulated_logic_data_train,
+                                       self.client_logic.logic_model,
+                                       round = 1)
+        if header_parts[2] == 'fed_average' :
+            if(self.aggregator.is_aggregator):
+                self.aggregator.fed_average(self.client_logic.logic_model)
+
+        if header_parts[2] == 'set_aggregator' : 
+            id = body.split('-id ')[1].split(';')[0]
+            if(id == self.id):
+                self.aggregator.is_aggregator = True
+            else:
+                self.aggregator.is_aggregator = False
+
+
+    def set_aggregator(self):
+        return    
     def execute_on_msg(self, header_parts, body) -> None :
         
         super().execute_on_msg(header_parts, body) 
