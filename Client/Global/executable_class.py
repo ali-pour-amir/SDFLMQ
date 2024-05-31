@@ -1,6 +1,8 @@
 import paho.mqtt.client as mqtt
 import time as T
 import re
+import os
+
 msg_size_limit = 10000000 #characters
 
 class PubSub_Base_Executable:
@@ -38,6 +40,10 @@ class PubSub_Base_Executable:
                                 self.broker_port,
                                 self.connection_timeout)
             
+            self.root_directory = self.id+"_data"
+            if(os.path.isdir(self.root_directory) == False):
+                os.mkdir(self.root_directory)
+
             print("Initiation Done.")
 
             if(start_loop):

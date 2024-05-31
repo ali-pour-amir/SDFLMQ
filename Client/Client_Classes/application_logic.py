@@ -1,26 +1,51 @@
-from Global.custom_models import VGG
+from Global.custom_models import VGG,MNISTMLP
 import json
 import torch
 from io import BytesIO
 import base64
 import zlib
+from Global import base_io
 
 class dflmq_client_app_logic():
     
-    def __init__(self, is_simulating,id)-> None:
+    def __init__(self, is_simulating,id,root_directory)-> None:
 
         self.id = id
         self.is_simulating = is_simulating
+        self.root_directory = root_directory
         self.logic_model = None
         self.simulated_logic_data_train = None
         self.simulated_logic_data_test = None
         self.simulated_logic_dataset_name = None
         
 
-        self.executables = ['construct_logic_model', 'collect_logic_model', 'collect_logic_data']
+        self.executables = ['construct_logic_model', 'collect_logic_model', 'collect_logic_data', 'load_model', 'load_dataset']
 
+    def load_model(self, model_name):
+        dir = self.root_directory + "/models/"
+        data = base_io.load_file(dir,model_name)
+        if(data != -1):
+            self.logic_model = data
+            print("Model " + model_name + " loaded.")
+    
+    def load_dataset(self,dataset_name):
+        dir = self.root_directory + "/datasets/"
+        data1 = base_io.load_file(dir,dataset_name+"_training")
+        data2 = base_io.load_file(dir,dataset_name+"_testing")
+        if(data1 != -1):
+            self.simulated_logic_data_train = data1
+            print("Training dataset loaded. set size: " + str(len(data1)))
+        if(data2 != -1):
+            self.simulated_logic_data_test = data2
+            print("Test dataset loaded. set size: " + str(len(data2)))
+    
     def construct_logic_model(self, model_name):
-        self.logic_model = VGG(model_name)
+        if(model_name.find("VGG")>0):
+            self.logic_model = VGG(model_name)
+        elif(model_name == "MNISTMLP"):
+            self.logic_model = MNISTMLP()
+        dir = self.root_directory + "/models/"
+        base_io.save_file(dir,model_name,self.logic_model)
     
     def collect_logic_model(self, parameters):
         print(len(parameters))
@@ -42,6 +67,9 @@ class dflmq_client_app_logic():
         self.simulated_logic_data_test = loaded_dataset["testset"]
         print("Number of images in the loaded training dataset:", len(loaded_dataset["trainset"]))
         print("Number of images in the loaded testing dataset:", len(loaded_dataset["testset"]))
+        dir = self.root_directory + "/datasets/"
+        base_io.save_file(dir,dataset_name+"_training",loaded_dataset["trainset"])
+        base_io.save_file(dir,dataset_name+"_testing",loaded_dataset["testset"])
         
 
     def get_model(self):
@@ -73,4 +101,13 @@ class dflmq_client_app_logic():
                 dataset_type = body.split(' -dataset_type ')[1].split(' -data ')[0]
                 bin_data     = body.split(' -data ')[1].split(';')[0]
                 self.collect_logic_data(dataset_name,dataset_type,bin_data)
-                
+        
+        if header_parts[2] == 'load_model':
+            model_name = body.split('-model_name ')[1].split(';')[0]
+            self.load_model(model_name)
+
+        if header_parts[2] == 'load_dataset':
+            dataset_name = body.split('-dataset_name ')[1].split(';')[0]
+            self.load_dataset(dataset_name)
+            
+        

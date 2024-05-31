@@ -40,6 +40,23 @@ class VGG(nn.Module):
                 in_channels = x
         layers += [nn.AvgPool2d(kernel_size=1, stride=1)]
         return nn.Sequential(*layers)
-        
+
+
+class MNISTMLP(nn.Module):
+    def __init__(self):
+        super(MNISTMLP, self).__init__()
+        self.fc1 = nn.Linear(28*28, 128)
+        # self.fc2 = nn.Linear(256, 256)
+        self.fc3 = nn.Linear(128, 64)
+        self.fc4 = nn.Linear(64, 10)
+    
+    def forward(self, x):
+        x = x.view(-1, 28*28)
+        x = torch.relu(self.fc1(x))
+        # x = torch.relu(self.fc2(x))
+        x = torch.relu(self.fc3(x))
+        x = self.fc4(x)
+        return x
+
  
 

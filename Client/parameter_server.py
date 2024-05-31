@@ -1,8 +1,8 @@
 import json
 import torch
 import torch.nn as nn
-from Global.custom_models import VGG
-from Global.custom_datasets import CIFAR10
+from Global.custom_models import VGG, MNISTMLP
+from Global.custom_datasets import CIFAR10, MNIST
 from Global.executable_class import PubSub_Base_Executable
 from io import BytesIO
 import zlib
@@ -36,9 +36,9 @@ class dflmq_parameter_server(PubSub_Base_Executable):
                     controller_echo_topic , 
                     start_loop)
 
-        self.model_name = 'VGG11'
-        self.global_model   =  VGG(self.model_name)
-        self.dataset        = CIFAR10()
+        self.model_name = 'MNISTMLP'
+        self.global_model   =  MNISTMLP()
+        self.dataset        = MNIST()
 
         self.client.subscribe(self.CoTPST)
 
@@ -77,8 +77,8 @@ class dflmq_parameter_server(PubSub_Base_Executable):
         self.publish(self.PSTCliT,"collect_logic_model"," -id all -model_name " + str(self.model_name)+ " -model_params " + str(model_params)) 
         
     def publish_dataset(self, num_clients, dataset_name, client_ids):
+        
         [traindata_splits, testdata] = self.dataset.load_data_for_clients(num_clients)
-
         for i in range(num_clients):
             print("buffering training dataset for client " + str(client_ids[i]))
             buffer = BytesIO()
@@ -90,7 +90,7 @@ class dflmq_parameter_server(PubSub_Base_Executable):
             compressed_data = zlib.compress(buffer.read())
             compressed_data_s = base64.b64encode(compressed_data).decode('utf-8')
 
-            self.publish(self.PSTCliIDT + client_ids[i],"collect_logic_data"," -id " + client_ids[i] + " -dataset_name " + "dataset_name" + " -dataset_type " + "training"  + " -data " + compressed_data_s) 
+            self.publish(self.PSTCliIDT + client_ids[i],"collect_logic_data"," -id " + client_ids[i] + " -dataset_name " + dataset_name + " -dataset_type " + "training,testing"  + " -data " + compressed_data_s) 
             buffer.close()
 
 

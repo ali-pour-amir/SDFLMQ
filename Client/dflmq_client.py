@@ -3,9 +3,10 @@ from Global.executable_class import PubSub_Base_Executable
 from Client_Classes.aggregator import dflmq_aggregator
 from Client_Classes.trainer import dflmq_trainer
 from Client_Classes.application_logic import dflmq_client_app_logic
-
+from Global import base_io
 import numpy as np
 import psutil
+import json
 
 class DFLMQ_Client(PubSub_Base_Executable) :
     def __init__(self , 
@@ -23,6 +24,8 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         self.PSTCoT = "PS_to_Cli_T"
         self.PSTCliIDT = "PS_to_Cli_ID_"
         
+        self.current_agg_topic = "-1"
+
         super().__init__(
                     myID , 
                     broker_ip , 
@@ -33,7 +36,7 @@ class DFLMQ_Client(PubSub_Base_Executable) :
                     start_loop)
 
         self.client_logic   = dflmq_client_app_logic(id=self.id,
-                                                     is_simulating=True)
+                                                     is_simulating=True,root_directory=self.root_directory)
         self.trainer        = dflmq_trainer()
         self.aggregator     = dflmq_aggregator()
 
@@ -57,23 +60,51 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         if header_parts[2] == 'echo_resources' : 
             self.echo_resources()
         if header_parts[2] == 'client_update' : 
-            self.trainer.client_update(self.client_logic.simulated_logic_data_train,
+            updated_model = self.trainer.client_update(self.client_logic.simulated_logic_data_train,
                                        self.client_logic.logic_model,
                                        round = 1)
+            self.client_logic.logic_model = updated_model
+            print("Local model updated")
         if header_parts[2] == 'fed_average' :
             if(self.aggregator.is_aggregator):
                 self.aggregator.fed_average(self.client_logic.logic_model)
 
         if header_parts[2] == 'set_aggregator' : 
             id = body.split('-id ')[1].split(';')[0]
-            if(id == self.id):
-                self.aggregator.is_aggregator = True
+            self.set_aggregator(id)
+
+    def set_aggregator(self,id):
+        if(id == self.id):
+            self.aggregator.is_aggregator = True
+            
+            if(self.current_agg_topic != "-1"):
+                self.client.unsubscribe(self.current_agg_topic)
+            self.current_agg_topic = "-1"
+        else:
+            self.aggregator.is_aggregator = False
+            if(self.current_agg_topic == "-1"):
+                self.current_agg_topic = "agg_"+id
+                self.client.subscribe(self.current_agg_topic)
             else:
-                self.aggregator.is_aggregator = False
+                self.client.unsubscribe(self.current_agg_topic)
+                self.current_agg_topic = "agg_"+id
+                self.client.subscribe(self.current_agg_topic)
+            
+        print("Aggregator topic: " + str(self.aggregator.is_aggregator))
+   
+    def receive_local(self):
+        return
+    
+    def propagate_local(self):
+        weights_and_biases = {}
+        for name, param in self.client_logic.logic_model.named_parameters():
+            weights_and_biases[name] = param.data.tolist()
 
-
-    def set_aggregator(self):
-        return    
+        model_params = json.dumps(weights_and_biases)
+        print(len(model_params))
+        self.publish(self.PSTCliT,"receive_locals"," -id " + self.id + " -model_params " + str(model_params)) 
+    
+    
     def execute_on_msg(self, header_parts, body) -> None :
         
         super().execute_on_msg(header_parts, body) 
