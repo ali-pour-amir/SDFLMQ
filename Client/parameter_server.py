@@ -74,7 +74,7 @@ class dflmq_parameter_server(PubSub_Base_Executable):
 
         model_params = json.dumps(weights_and_biases)
         print(len(model_params))
-        self.publish(self.PSTCliT,"collect_logic_model"," -id all -model_name " + str(self.model_name)+ " -model_params " + str(model_params)) 
+        self.publish(self.PSTCliT,"construct_logic_model"," -id all -model_name " + str(self.model_name)+ " -model_params " + str(model_params)) 
         
     def publish_dataset(self, num_clients, dataset_name, client_ids):
         

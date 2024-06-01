@@ -24,8 +24,6 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         self.PSTCoT = "PS_to_Cli_T"
         self.PSTCliIDT = "PS_to_Cli_ID_"
         
-        self.current_agg_topic = "-1"
-
         super().__init__(
                     myID , 
                     broker_ip , 
@@ -40,7 +38,7 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         self.trainer        = dflmq_trainer()
         self.aggregator     = dflmq_aggregator()
 
-        self.executables.extend(['echo_resources', 'client_update','fed_average','set_aggregator'])
+        self.executables.extend(['echo_resources', 'client_update','fed_average','set_aggregator','send_local','receive_local','propagate_global'])
         self.executables.extend(self.client_logic.executables)
         self.executables.extend(self.trainer.executables)
         self.executables.extend(self.aggregator.executables)
@@ -57,53 +55,93 @@ class DFLMQ_Client(PubSub_Base_Executable) :
     #     return header_parts
 
     def _execute_on_msg  (self, header_parts, body): 
-        if header_parts[2] == 'echo_resources' : 
-            self.echo_resources()
-        if header_parts[2] == 'client_update' : 
-            updated_model = self.trainer.client_update(self.client_logic.simulated_logic_data_train,
-                                       self.client_logic.logic_model,
-                                       round = 1)
-            self.client_logic.logic_model = updated_model
-            print("Local model updated")
-        if header_parts[2] == 'fed_average' :
-            if(self.aggregator.is_aggregator):
-                self.aggregator.fed_average(self.client_logic.logic_model)
+        try:
+            
+            if header_parts[2] == 'echo_resources' : 
+                self.echo_resources()
+            if header_parts[2] == 'client_update' : 
+                updated_model = self.trainer.client_update( self.client_logic.simulated_logic_data_train,
+                                                            self.client_logic.logic_model,
+                                                            round = 1)
+                self.client_logic.logic_model = updated_model
+                print("Local model updated")
+            if header_parts[2] == 'fed_average' :
+                if(self.aggregator.is_aggregator):
+                    self.client_logic.logic_model = self.aggregator.fed_average(self.client_logic.logic_model)
+                    self.aggregator.agg_test(self.client_logic.logic_model,self.client_logic.simulated_logic_data_test)
 
-        if header_parts[2] == 'set_aggregator' : 
-            id = body.split('-id ')[1].split(';')[0]
-            self.set_aggregator(id)
+            if header_parts[2] == 'set_aggregator' : 
+                id = body.split('-id ')[1].split(';')[0]
+                self.set_aggregator(id)
+
+            if header_parts[2] == 'send_local' : 
+                id = body.split('-id ')[1].split(';')[0]
+                if(id == "all" or id == self.id):
+                    if(self.aggregator.is_aggregator == False):
+                        self.send_local()
+                
+            if header_parts[2] == 'receive_local' : 
+                if(self.aggregator.is_aggregator):
+                    id = body.split('-id ')[1].split(' -model_params ')[0]
+                    model_params = body.split('-model_params ')[1].split(';')[0]
+                    self.receive_local(id, model_params)
+                else:
+                    print("Receiving parameters, but not this client is not an aggregator.")
+
+            if header_parts[2] == 'propagate_global' : 
+                id = body.split('-id ')[1].split(';')[0]
+                if(id == "all" or id == self.id):
+                    if(self.aggregator.is_aggregator == True):
+                        self.propagate_global()
+        except:
+            print("Something in the command message was not right! Try again.")
 
     def set_aggregator(self,id):
         if(id == self.id):
             self.aggregator.is_aggregator = True
+            if(self.aggregator.current_agg_topic_r != "-1"):
+                self.client.unsubscribe(self.aggregator.current_agg_topic_r)
             
-            if(self.current_agg_topic != "-1"):
-                self.client.unsubscribe(self.current_agg_topic)
-            self.current_agg_topic = "-1"
+            self.aggregator.current_agg_topic_r = "c2a_agg_"+id
+            self.aggregator.current_agg_topic_s = "a2c_agg_"+id
+            self.client.subscribe(self.aggregator.current_agg_topic_r)
         else:
             self.aggregator.is_aggregator = False
-            if(self.current_agg_topic == "-1"):
-                self.current_agg_topic = "agg_"+id
-                self.client.subscribe(self.current_agg_topic)
-            else:
-                self.client.unsubscribe(self.current_agg_topic)
-                self.current_agg_topic = "agg_"+id
-                self.client.subscribe(self.current_agg_topic)
+            if(self.aggregator.current_agg_topic_r != "-1"):
+                self.client.unsubscribe(self.aggregator.current_agg_topic_r)
+
+            self.aggregator.current_agg_topic_s = "c2a_agg_"+id
+            self.aggregator.current_agg_topic_r = "a2c_agg_"+id
+            self.client.subscribe(self.aggregator.current_agg_topic_r)
+                
             
         print("Aggregator topic: " + str(self.aggregator.is_aggregator))
    
-    def receive_local(self):
-        return
+    def receive_local(self,id, params):
+        
+        model_params = json.loads(params)
+        self.aggregator.accumulate_params(model_params)
+        print("Received and archived client " + id + " local model parameters.")
     
-    def propagate_local(self):
+    def send_local(self):
         weights_and_biases = {}
         for name, param in self.client_logic.logic_model.named_parameters():
             weights_and_biases[name] = param.data.tolist()
 
         model_params = json.dumps(weights_and_biases)
         print(len(model_params))
-        self.publish(self.PSTCliT,"receive_locals"," -id " + self.id + " -model_params " + str(model_params)) 
+        self.publish(self.aggregator.current_agg_topic_s,"receive_local"," -id " + self.id + " -model_params " + str(model_params)) 
+        print("Model parameters published to aggregator.")
     
+    def propagate_global(self):
+        weights_and_biases = {}
+        for name, param in self.client_logic.logic_model.named_parameters():
+            weights_and_biases[name] = param.data.tolist()
+
+        model_params = json.dumps(weights_and_biases)
+        print(len(model_params))
+        self.publish(self.aggregator.current_agg_topic_s,"collect_logic_model"," -id " + self.id + " -model_params " + str(model_params)) 
+        print("Global model parameters published to clients.")
     
     def execute_on_msg(self, header_parts, body) -> None :
         

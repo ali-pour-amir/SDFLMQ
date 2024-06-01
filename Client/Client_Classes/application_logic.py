@@ -14,10 +14,11 @@ class dflmq_client_app_logic():
         self.is_simulating = is_simulating
         self.root_directory = root_directory
         self.logic_model = None
+        self.logic_model_name = ""
         self.simulated_logic_data_train = None
         self.simulated_logic_data_test = None
         self.simulated_logic_dataset_name = None
-        
+       
 
         self.executables = ['construct_logic_model', 'collect_logic_model', 'collect_logic_data', 'load_model', 'load_dataset']
 
@@ -26,6 +27,7 @@ class dflmq_client_app_logic():
         data = base_io.load_file(dir,model_name)
         if(data != -1):
             self.logic_model = data
+            self.logic_model_name = model_name
             print("Model " + model_name + " loaded.")
     
     def load_dataset(self,dataset_name):
@@ -44,6 +46,8 @@ class dflmq_client_app_logic():
             self.logic_model = VGG(model_name)
         elif(model_name == "MNISTMLP"):
             self.logic_model = MNISTMLP()
+        
+        self.logic_model_name = model_name
         dir = self.root_directory + "/models/"
         base_io.save_file(dir,model_name,self.logic_model)
     
@@ -82,6 +86,11 @@ class dflmq_client_app_logic():
 
         if header_parts[2] == 'collect_logic_model':
             print("received collect model command. parsing command ...")
+            model_params = body.split(' -model_params ')[1].split(';')[0]
+            self.collect_logic_model(model_params)
+
+        if header_parts[2] == 'construct_logic_model':
+            print("received construct model command. parsing command ...")
             id = body.split('-id ')[1].split(' -model_name ')[0]
             if(id == 'all' or id == self.id):
                 model_name = body.split('-model_name ')[1].split(' -model_params ')[0]
