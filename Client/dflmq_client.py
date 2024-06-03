@@ -148,9 +148,9 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         super().execute_on_msg(header_parts, body) 
         self._execute_on_msg(header_parts, body)
         
-        self.client_logic._execute_on_msg(header_parts, body)
-        self.trainer._execute_on_msg(header_parts, body)
-        self.aggregator._execute_on_msg(header_parts, body)
+        self.client_logic.  _execute_on_msg(header_parts, body)
+        self.trainer.       _execute_on_msg(header_parts, body)
+        self.aggregator.    _execute_on_msg(header_parts, body)
 
     def echo_resources(self) -> None : 
         resources = {
@@ -168,7 +168,7 @@ class DFLMQ_Client(PubSub_Base_Executable) :
 
 
 userID = input("Enter UserID: ")
-print("User with ID=" + userID +" is created.")
+print("User with ID : " + userID +" is created.")
 
 exec_program = DFLMQ_Client(myID = userID,
         broker_ip = 'localhost' ,

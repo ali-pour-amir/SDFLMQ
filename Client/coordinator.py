@@ -28,12 +28,9 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         
         self.client.subscribe(self.CiTCoT)
         
-    # def _get_header_body(self , msg) -> list :
-    #     header_body = str(msg.payload.decode()).split('::')
-    #     print("MESSAGE Header: " + header_body[0])
-    #     header_parts = header_body[0].split('|')
-    #     return header_parts
-
+    def Initiate_FL(self, dataset_name, model_name, num_rounds):
+        
+        return
     def parse_client_stats(self , msg) : 
         print(msg)
 
@@ -55,7 +52,7 @@ userID = input("Enter UserID: ")
 print("User with ID=" + userID +" is created.")
 
 exec_program = DFLMQ_Coordinator(myID = userID,
-        broker_ip = 'broker.emqx.io' ,
+        broker_ip = 'localhost' ,
         broker_port = 1883,
         introduction_topic='client_introduction',
         controller_executable_topic='controller_executable',
