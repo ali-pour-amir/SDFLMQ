@@ -20,7 +20,7 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         
         
         self.CoTClT = "Coo_to_Cli_T"
-        self.CiTCoT = "Cli_to_Coo_T"
+        self.ClTCoT = "Cli_to_Coo_T"
         self.PSTCoT = "PS_to_Cli_T"
         self.PSTCliIDT = "PS_to_Cli_ID_"
         
@@ -64,6 +64,7 @@ class DFLMQ_Client(PubSub_Base_Executable) :
                                                             self.client_logic.logic_model,
                                                             round = 1)
                 self.client_logic.logic_model = updated_model
+                self.publish(self.ClTCoT,"local_training_complete" , " -id " + str(self.id))
                 print("Local model updated")
             if header_parts[2] == 'fed_average' :
                 if(self.aggregator.is_aggregator):
@@ -164,7 +165,7 @@ class DFLMQ_Client(PubSub_Base_Executable) :
 
         res_msg = str(resources) # TODO : format the dictionary as string, later 
         self.publish(topic=self.controller_echo_topic,func_name="echo_resources",msg=res_msg)
-        self.publish(topic=self.CiTCoT,func_name="parse_client_stats",msg=res_msg)
+        self.publish(topic=self.ClTCoT,func_name="parse_client_stats",msg=res_msg)
 
 
 userID = input("Enter UserID: ")
