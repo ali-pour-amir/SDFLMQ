@@ -27,6 +27,7 @@ class dflmq_aggregator():
             weights_and_biases[name] = param.data.tolist()
 
         self.client_model_params.append(weights_and_biases)
+
         global_dict = global_model.state_dict()
         for k in global_dict.keys():
             global_dict[k] = torch.stack([torch.tensor(self.client_model_params[i][k]) for i in range(len(self.client_model_params))],0).mean(0)
@@ -60,7 +61,7 @@ class dflmq_aggregator():
         acc = correct / len(test_dataset)
         print("test loss: " + str(test_loss))
         print("test acc: " + str(acc))
-        return test_loss, acc
+        return acc, test_loss
     
     def _execute_on_msg(self,header_parts, body):
         return 0

@@ -64,12 +64,16 @@ class DFLMQ_Client(PubSub_Base_Executable) :
                                                             self.client_logic.logic_model,
                                                             round = 1)
                 self.client_logic.logic_model = updated_model
-                self.publish(self.ClTCoT,"local_training_complete" , " -id " + str(self.id))
-                print("Local model updated")
+                print("Local model updated.")
+               
+                if(self.aggregator.is_aggregator == False):
+                    self.publish(self.ClTCoT,"local_training_complete" , " -id " + str(self.id))
+                
             if header_parts[2] == 'fed_average' :
                 if(self.aggregator.is_aggregator):
                     self.client_logic.logic_model = self.aggregator.fed_average(self.client_logic.logic_model)
-                    self.aggregator.agg_test(self.client_logic.logic_model,self.client_logic.simulated_logic_data_test)
+                    acc, loss = self.aggregator.agg_test(self.client_logic.logic_model,self.client_logic.simulated_logic_data_test)
+                    self.publish(self.ClTCoT,"aggregation_complete"," -id " + self.id + " -model_acc " + str(acc) + " -model_loss " + str(loss))
 
             if header_parts[2] == 'set_aggregator' : 
                 id = body.split('-id ')[1].split(';')[0]
@@ -123,6 +127,7 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         model_params = json.loads(params)
         self.aggregator.accumulate_params(model_params)
         print("Received and archived client " + id + " local model parameters.")
+        self.publish(self.ClTCoT,"aggregator_received_local_params"," -id " + id)
     
     def send_local(self):
         weights_and_biases = {}
@@ -156,16 +161,18 @@ class DFLMQ_Client(PubSub_Base_Executable) :
     def echo_resources(self) -> None : 
         resources = {
             'cpu_count'     : psutil.cpu_count() ,
-            'disk_usage'    : psutil.disk_usage("/") ,
+            # 'disk_usage'    : psutil.disk_usage("/") ,
             'cpu_frequency' : psutil.cpu_freq() ,
-            'cpu_stats'     : psutil.cpu_stats() ,
-            'net_stats'     : psutil.net_if_stats() ,
+            # 'cpu_stats'     : psutil.cpu_stats() ,
+            # 'net_stats'     : psutil.net_if_stats() ,
             'ram_usage'     : psutil.virtual_memory()[3]/1000000000 ,
-            'net_counters'  : psutil.net_io_counters()}
+            # 'net_counters'  : psutil.net_io_counters()
+            }
 
-        res_msg = str(resources) # TODO : format the dictionary as string, later 
-        self.publish(topic=self.controller_echo_topic,func_name="echo_resources",msg=res_msg)
+        res_msg = json.dumps(resources) # TODO : format the dictionary as string, later 
+        # self.publish(topic=self.controller_echo_topic,func_name="echo_resources",msg=res_msg)
         self.publish(topic=self.ClTCoT,func_name="parse_client_stats",msg=res_msg)
+        
 
 
 userID = input("Enter UserID: ")
