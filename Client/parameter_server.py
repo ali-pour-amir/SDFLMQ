@@ -36,9 +36,11 @@ class dflmq_parameter_server(PubSub_Base_Executable):
                     controller_echo_topic , 
                     start_loop)
 
-        self.model_name = 'MNISTMLP'
-        self.global_model   =  MNISTMLP()
-        self.dataset        = MNIST()
+        self.model_stash   =   {'MNISTMLP' : MNISTMLP(),
+                                'VGG11' : VGG('VGG11'),
+                                'VGG3' : VGG('VGG3')}
+        self.dataset_stash        =   {'MNIST' : MNIST(),
+                                       'CIFAR10' : CIFAR10()}
 
         self.client.subscribe(self.CoTPST)
 
@@ -50,8 +52,9 @@ class dflmq_parameter_server(PubSub_Base_Executable):
 
     def _execute_on_msg(self,header_parts, body):
         # header_parts = self._get_header_body(msg)
-        if header_parts[2] == 'broadcast_model' : 
-            self.broadcast_model()
+        if header_parts[2] == 'broadcast_model' :
+            model_name = body.split('-model_name ')[1].split(';')[0]
+            self.broadcast_model(model_name)
             
         if header_parts[2] == 'publish_dataset':
             dataset_name = body.split('-dataset_name ')[1].split(' -num_clients ')[0]
@@ -67,18 +70,19 @@ class dflmq_parameter_server(PubSub_Base_Executable):
         super().execute_on_msg(header_parts, body)
         self._execute_on_msg(header_parts, body)
         
-    def broadcast_model(self):
+    def broadcast_model(self,model_name):
+        model = self.model_stash[model_name]
         weights_and_biases = {}
-        for name, param in self.global_model.named_parameters():
+        for name, param in model.named_parameters():
             weights_and_biases[name] = param.data.tolist()
 
         model_params = json.dumps(weights_and_biases)
         print(len(model_params))
-        self.publish(self.PSTCliT,"construct_logic_model"," -id all -model_name " + str(self.model_name)+ " -model_params " + str(model_params)) 
+        self.publish(self.PSTCliT,"construct_logic_model"," -id all -model_name " + model_name + " -model_params " + str(model_params)) 
         
     def publish_dataset(self, num_clients, dataset_name, client_ids):
         
-        [traindata_splits, testdata] = self.dataset.load_data_for_clients(num_clients)
+        [traindata_splits, testdata] = self.dataset_stash[dataset_name].load_data_for_clients(num_clients)
         for i in range(num_clients):
             print("buffering training dataset for client " + str(client_ids[i]))
             buffer = BytesIO()

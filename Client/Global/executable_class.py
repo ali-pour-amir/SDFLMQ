@@ -5,6 +5,11 @@ import os
 
 msg_size_limit = 10000000 #characters
 
+#
+#    client.start_loop() This starts the network loop on a background thread
+#    client.loop_forever() This starts the network loop on the current thread and will block forever.
+#    client.loop() this executes one cycle of the network loop and must be called as part of your own loop.
+
 class PubSub_Base_Executable:
 
 #EXECUTABLE PARAMS: 
@@ -18,7 +23,7 @@ class PubSub_Base_Executable:
 #MQTT PARAMS:
         broker_ip = ''
         broker_port = 0000
-        connection_timeout = 60
+        connection_timeout = 3600
 
 #SECTION:: STARTUP
         def __init__(self,myID,broker_ip, broker_port, introduction_topic, controller_executable_topic,controller_echo_topic, start_loop):

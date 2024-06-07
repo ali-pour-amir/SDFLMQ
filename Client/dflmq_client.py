@@ -55,13 +55,17 @@ class DFLMQ_Client(PubSub_Base_Executable) :
     #     return header_parts
 
     def _execute_on_msg  (self, header_parts, body): 
-        try:
+        # try:
             
             if header_parts[2] == 'echo_resources' : 
                 self.echo_resources()
-            if header_parts[2] == 'client_update' : 
+            if header_parts[2] == 'client_update' :
+                num_epochs = body.split(' -num_epochs ')[1].split(' -batch_size ')[0]
+                batch_size = body.split(' -batch_size ')[1].split(';')[0]
                 updated_model = self.trainer.client_update( self.client_logic.simulated_logic_data_train,
                                                             self.client_logic.logic_model,
+                                                            int(num_epochs),
+                                                            int(batch_size),
                                                             round = 1)
                 self.client_logic.logic_model = updated_model
                 print("Local model updated.")
@@ -94,12 +98,10 @@ class DFLMQ_Client(PubSub_Base_Executable) :
                     print("Receiving parameters, but not this client is not an aggregator.")
 
             if header_parts[2] == 'propagate_global' : 
-                id = body.split('-id ')[1].split(';')[0]
-                if(id == "all" or id == self.id):
-                    if(self.aggregator.is_aggregator == True):
-                        self.propagate_global()
-        except:
-            print("Something in the command message was not right! Try again.")
+               if(self.aggregator.is_aggregator == True):
+                    self.propagate_global()
+        # except:
+        #     print("Something in the command message was not right! Try again.")
 
     def set_aggregator(self,id):
         if(id == self.id):
@@ -133,7 +135,8 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         weights_and_biases = {}
         for name, param in self.client_logic.logic_model.named_parameters():
             weights_and_biases[name] = param.data.tolist()
-
+        # local_params = []
+        # local_params.append({k: v.cpu() for k, v in self.client_logic.logic_model.state_dict().items()})
         model_params = json.dumps(weights_and_biases)
         print(len(model_params))
         self.publish(self.aggregator.current_agg_topic_s,"receive_local"," -id " + self.id + " -model_params " + str(model_params)) 
@@ -147,7 +150,8 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         model_params = json.dumps(weights_and_biases)
         print(len(model_params))
         self.publish(self.aggregator.current_agg_topic_s,"collect_logic_model"," -id " + self.id + " -model_params " + str(model_params)) 
-        print("Global model parameters published to clients.")
+        print("Global model parameters published to clients. Informing Coordinator.")
+        self.publish(self.ClTCoT,"global_model_propagated","")
     
     def execute_on_msg(self, header_parts, body) -> None :
         

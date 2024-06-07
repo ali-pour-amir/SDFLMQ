@@ -22,6 +22,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         self.executables.append('local_training_complete')
         self.executables.append('aggregation_complete')
         self.executables.append('aggregator_received_local_params')
+        self.executables.append('global_model_propagated')
         super().__init__(
                     myID , 
                     broker_ip , 
@@ -99,18 +100,21 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         self.publish(self.CoTClT,"set_aggregator"," -id " + client0)
 
     def initiate_training(self):
-        self.publish(self.CoTClT,"client_update","")
+        self.publish(self.CoTClT,"client_update"," -num_epochs " + str(self.active_session['num_epochs']) + " -batch_size " + str(self.active_session['batch_size']) )
     
     def order_client_resources(self) : 
         self.publish(self.CoTClT , "echo_resources" , "")
 
     #run new_training_session -session_name se1 -dataset_name MNIST -model_name MNISTMLP -num_clients 2 -num_rounds 100
-    def create_new_session(self,session,dataset,model,num_clients, rounds):
+    #run new_training_session -session_name CIFAR10_VGG3_se1 -dataset_name CIFAR10 -model_name VGG3 -num_clients 2 -num_epochs 1 -batch_size 100 -num_rounds 10
+    def create_new_session(self,session,dataset,model,num_clients, num_epochs, batch_size, rounds):
         new_session = {}
         new_session['session_name'] = session
         new_session['dataset_name'] = dataset
         new_session['model_name'] = model
         new_session['num_clients'] = int(num_clients)
+        new_session['num_epochs'] = int(num_epochs)
+        new_session['batch_size'] = int(batch_size)
         new_session['num_rounds'] = int(rounds)
         new_session['current_round'] = 0
         round = {'participants' : [], 'status': '', 'aggregator':'','acc':'','loss':''}
@@ -134,11 +138,10 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         print("Asking aggregator to perform aggregation")
         self.publish(self.CoTClT,"fed_average","")
          
-    def update_rounds(self,acc,loss):
+    def update_rounds(self):
         
         self.active_session['rounds'][self.active_session['current_round']]['status'] = 'complete'
-        self.active_session['rounds'][self.active_session['current_round']]['acc'] = str(acc)
-        self.active_session['rounds'][self.active_session['current_round']]['loss'] = str(loss)
+        
         if(self.active_session['current_round'] < self.active_session['num_rounds']-1):
             self.active_session['current_round'] += 1
             new_round = {'participants' : [], 'status': '', 'aggregator':''}
@@ -186,12 +189,16 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
             session_name    = body.split(' -session_name ')[1]  .split(' -dataset_name ')[0]
             dataset_name    = body.split(' -dataset_name ')[1]  .split(' -model_name ')[0]
             model_name      = body.split(' -model_name ')[1]    .split(' -num_clients ')[0]
-            num_clients     = body.split(' -num_clients ')[1]   .split(' -num_rounds ')[0]
+            num_clients     = body.split(' -num_clients ')[1]   .split(' -num_epochs ')[0]
+            num_epochs     = body.split(' -num_epochs ')[1]   .split(' -batch_size ')[0]
+            batch_size     = body.split(' -batch_size ')[1]   .split(' -num_rounds ')[0]
             num_rounds      = body.split(' -num_rounds ')[1]    .split(';')[0]
             self.create_new_session(session_name,
                                     dataset_name,
                                     model_name,
                                     num_clients,
+                                    num_epochs,
+                                    batch_size,
                                     num_rounds)
 
         if(header_parts[2] == 'local_training_complete'):
@@ -220,9 +227,14 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
             client_id = body.split(' -id ')[1].split(' -model_acc ')[0]
             model_acc = body.split(' -model_acc ')[1].split(' -model_loss ')[0]
             model_loss = body.split(' -model_loss ')[1].split(';')[0]
-
-            print("Client " + client_id + " has reported aggregation is complete. Completing round.")
-            self.update_rounds(model_acc,model_loss)
+            self.active_session['rounds'][self.active_session['current_round']]['acc'] = str(model_acc)
+            self.active_session['rounds'][self.active_session['current_round']]['loss'] = str(model_loss)
+            print("Client " + client_id + " has reported aggregation is complete. Requesting for global model propagation.")
+            self.publish(self.CoTClT,"propagate_global","")
+        
+        if(header_parts[2] == 'global_model_propagated'):
+            print("Global model propagated. Completing round.")
+            self.update_rounds()
 
 
 

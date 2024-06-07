@@ -12,36 +12,44 @@ class dflmq_trainer():
         # ############### optimizer ################
         # opt = optim.SGD(self.client_model.parameters(), lr=0.1)
 
-    def client_update(self, training_dataset, client_model, round=1):##TODO: Don't forget to reset the optimizer after each round, since it is a class variable.
+    def client_update(self, training_dataset, client_model, num_epochs, batch_size, round=1):##TODO: Don't forget to reset the optimizer after each round, since it is a class variable.
         
-        train_loader = torch.utils.data.DataLoader(dataset=training_dataset, batch_size=len(training_dataset), shuffle=True)
-        x_train, y_train = next(iter(train_loader))
+        loader = torch.utils.data.DataLoader(dataset=training_dataset, batch_size=len(training_dataset), shuffle=True)
+        x_train, y_train = next(iter(loader))
 
         #This function updates/trains client model on client data
         val_size = int(0.1 * len(training_dataset))
         train_size = len(training_dataset) - val_size
+        
         train_data, val_data = torch.utils.data.random_split(
             list(zip(x_train, y_train)), [train_size, val_size])
-
-        x_train, y_train = zip(*train_data)
+       
+        
+        # x_train, y_train = zip(*train_data)
+        
+        # x_train = torch.stack(x_train)
+        # y_train = torch.tensor(y_train)
+        
         x_val, y_val = zip(*val_data)
-        x_train = torch.stack(x_train)
-        y_train = torch.tensor(y_train)
         x_val = torch.stack(x_val)
         y_val = torch.tensor(y_val)
-        
+
+        train_loader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
+
+
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(client_model.parameters(),lr=0.01)
 
-        print("Training begins ...")
+        print("Training begins for " + str(num_epochs) + " epochs ...")
         client_model.train()
-        for e in range(1):
+        for e in range(num_epochs):
+            print("epoch " + str(e))
             for batch_idx, (data, target) in enumerate(train_loader):
-                print("batch " + str(batch_idx))
                 data, target = data, target
+                print("batch " + str(batch_idx))
                 optimizer.zero_grad()
                 output = client_model(data)
-                loss = F.nll_loss(output, target)
+                loss = criterion(output, target)
                 loss.backward()
                 optimizer.step()
 

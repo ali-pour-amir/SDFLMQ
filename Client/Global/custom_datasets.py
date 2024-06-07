@@ -13,7 +13,7 @@ torch.backends.cudnn.benchmark=True
 class CIFAR10():
     
     def __init__(self) -> None:
-        self.batch_size = 32
+        self.batch_size = 1
 
 
     def load_data_for_clients(self, num_clients):
@@ -53,7 +53,7 @@ class CIFAR10():
 
 class MNIST():
     def __init__(self) -> None:
-        self.batch_size = 32
+        self.batch_size = 1
     
     def load_data_for_clients(self,num_clients):
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])

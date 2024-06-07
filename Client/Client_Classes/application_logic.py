@@ -42,7 +42,7 @@ class dflmq_client_app_logic():
             print("Test dataset loaded. set size: " + str(len(data2)))
     
     def construct_logic_model(self, model_name):
-        if(model_name.find("VGG")>0):
+        if(model_name.find("VGG")>=0):
             self.logic_model = VGG(model_name)
         elif(model_name == "MNISTMLP"):
             self.logic_model = MNISTMLP()
