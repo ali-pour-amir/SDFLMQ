@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torchvision import datasets, transforms
 
 class dflmq_aggregator():
     
@@ -54,13 +55,14 @@ class dflmq_aggregator():
    
     def agg_test(self, global_model, test_dataset):
         """This function test the global model on test data and returns test loss and test accuracy """
+        
+        test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=len(test_dataset), shuffle=True)
+        x_test, y_test = next(iter(test_loader))
+
         global_model.eval()
         test_loss = 0
         correct = 0
         criterion = nn.CrossEntropyLoss()
-        test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=len(test_dataset), shuffle=True)
-        x_test, y_test = next(iter(test_loader))
-
         with torch.no_grad():
             # for batch_indx, (data, target) in enumerate(test_loader):
             # output = global_model(data)

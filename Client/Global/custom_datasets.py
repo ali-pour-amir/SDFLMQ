@@ -19,8 +19,8 @@ class CIFAR10():
     def load_data_for_clients(self, num_clients):
         
         transform_train = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
+        #transforms.RandomCrop(32, padding=4),
+        #transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),])
         # transform = transforms.Compose([transforms.ToTensor()])
@@ -41,7 +41,7 @@ class CIFAR10():
 
         # Normalizing the test images
         transform_test = transforms.Compose([
-            #transforms.ToTensor(),
+            transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
 

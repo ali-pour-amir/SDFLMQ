@@ -35,6 +35,7 @@ class dflmq_client_app_logic():
         data1 = base_io.load_file(dir,dataset_name+"_training")
         data2 = base_io.load_file(dir,dataset_name+"_testing")
         if(data1 != -1):
+            self.simulated_logic_dataset_name = dataset_name 
             self.simulated_logic_data_train = data1
             print("Training dataset loaded. set size: " + str(len(data1)))
         if(data2 != -1):

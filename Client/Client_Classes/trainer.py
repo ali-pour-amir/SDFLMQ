@@ -8,12 +8,14 @@ class dflmq_trainer():
     def __init__(self) -> None:
         
         self.executables = []
-
+        self.is_trainer = False
         # ############### optimizer ################
         # opt = optim.SGD(self.client_model.parameters(), lr=0.1)
 
     def client_update(self, training_dataset, client_model, num_epochs, batch_size, round=1):##TODO: Don't forget to reset the optimizer after each round, since it is a class variable.
-        
+        if(self.is_trainer == False):
+            print("Client is not a trainer!")
+            return
         loader = torch.utils.data.DataLoader(dataset=training_dataset, batch_size=len(training_dataset), shuffle=True)
         x_train, y_train = next(iter(loader))
 

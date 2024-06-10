@@ -38,7 +38,7 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         self.trainer        = dflmq_trainer()
         self.aggregator     = dflmq_aggregator()
 
-        self.executables.extend(['echo_resources', 'client_update','fed_average','set_aggregator','send_local','receive_local','propagate_global'])
+        self.executables.extend(['echo_resources', 'client_update','fed_average','set_aggregator','send_local','receive_local','propagate_global', 'update_status'])
         self.executables.extend(self.client_logic.executables)
         self.executables.extend(self.trainer.executables)
         self.executables.extend(self.aggregator.executables)
@@ -58,19 +58,25 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         # try:
             
             if header_parts[2] == 'echo_resources' : 
-                self.echo_resources()
+                model_name = body.split(' -model_name ')[1].split(' -dataset_name ')[0]
+                dataset_name = body.split(' -dataset_name ')[1].split(';')[0]
+                if((model_name == self.client_logic.logic_model_name) and (dataset_name == self.client_logic.simulated_logic_dataset_name)):
+                    self.echo_resources()
+                else:
+                    print("Model name or Dataset name does not match!")
             if header_parts[2] == 'client_update' :
-                num_epochs = body.split(' -num_epochs ')[1].split(' -batch_size ')[0]
-                batch_size = body.split(' -batch_size ')[1].split(';')[0]
-                updated_model = self.trainer.client_update( self.client_logic.simulated_logic_data_train,
-                                                            self.client_logic.logic_model,
-                                                            int(num_epochs),
-                                                            int(batch_size),
-                                                            round = 1)
-                self.client_logic.logic_model = updated_model
-                print("Local model updated.")
-               
-                if(self.aggregator.is_aggregator == False):
+                if(self.trainer.is_trainer):
+                    num_epochs = body.split(' -num_epochs ')[1].split(' -batch_size ')[0]
+                    batch_size = body.split(' -batch_size ')[1].split(';')[0]
+                    updated_model = self.trainer.client_update( self.client_logic.simulated_logic_data_train,
+                                                                self.client_logic.logic_model,
+                                                                int(num_epochs),
+                                                                int(batch_size),
+                                                                round = 1)
+                    self.client_logic.logic_model = updated_model
+                    print("Local model updated.")
+                
+                    
                     self.publish(self.ClTCoT,"local_training_complete" , " -id " + str(self.id))
                 
             if header_parts[2] == 'fed_average' :
@@ -85,10 +91,17 @@ class DFLMQ_Client(PubSub_Base_Executable) :
 
             if header_parts[2] == 'send_local' : 
                 id = body.split('-id ')[1].split(';')[0]
-                if(id == "all" or id == self.id):
-                    if(self.aggregator.is_aggregator == False):
-                        self.send_local()
-                
+                if(self.trainer.is_trainer):
+                    if(id == "all" or id == self.id):
+                        if(self.aggregator.is_aggregator == False):       
+                            self.send_local()
+                        else:
+                            print("No need to send locals, client is aggregator. Informing coordinator.")
+                            self.publish(self.ClTCoT,"aggregator_received_local_params"," -id " + self.id)
+                else:
+                    print("can't send local model params because client is not a trainer!")
+
+                    
             if header_parts[2] == 'receive_local' : 
                 if(self.aggregator.is_aggregator):
                     id = body.split('-id ')[1].split(' -model_params ')[0]
@@ -100,6 +113,15 @@ class DFLMQ_Client(PubSub_Base_Executable) :
             if header_parts[2] == 'propagate_global' : 
                if(self.aggregator.is_aggregator == True):
                     self.propagate_global()
+
+            if header_parts[2] == 'update_status' :
+               ids = body.split('-ids ')[1].split(';')[0]
+               ids = json.loads(ids)
+               if(self.id in ids):
+                    self.trainer.is_trainer = True
+               else:
+                    self.trainer.is_trainer = False
+
         # except:
         #     print("Something in the command message was not right! Try again.")
 
@@ -125,7 +147,6 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         print("Aggregator topic: " + str(self.aggregator.is_aggregator))
    
     def receive_local(self,id, params):
-        
         model_params = json.loads(params)
         self.aggregator.accumulate_params(model_params)
         print("Received and archived client " + id + " local model parameters.")
@@ -133,6 +154,8 @@ class DFLMQ_Client(PubSub_Base_Executable) :
     
     def send_local(self):
         weights_and_biases = {}
+        if(self.trainer.is_trainer == False):
+            return
         for name, param in self.client_logic.logic_model.named_parameters():
             weights_and_biases[name] = param.data.tolist()
         # local_params = []

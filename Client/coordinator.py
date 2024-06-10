@@ -37,6 +37,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         self.sessions = []
         self.active_session = {}
         self.client_stats = {}
+        self.round_clients = []
 
 
     #         'cpu_count'     : psutil.cpu_count() ,
@@ -53,47 +54,65 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
     client_parse_count = 0
 
     def parse_client_stats(self , client_id, statsstr) : 
+
         stats = json.loads(statsstr)
-        if(client_id in self.client_stats):
-            self.client_stats[client_id]['cpu_count'].append(stats['cpu_count'])
-            # self.client_stats[client_id]['disk_usage'].append(stats['disk_usage'])
-            self.client_stats[client_id]['cpu_frequency'].append(stats['cpu_frequency'])
-            # self.client_stats[client_id]['cpu_stats'].append(stats['cpu_stats'])
-            # self.client_stats[client_id]['net_stats'].append(stats['net_stats'])
-            self.client_stats[client_id]['ram_usage'].append(stats['ram_usage'])
-            # self.client_stats[client_id]['net_counters'].append(stats['net_counters'])
+        round_status = self.active_session['rounds'][self.active_session['current_round']]['status'] 
+
+        if((round_status != 'pending') and (round_status != 'complete')):
+            if(client_id in self.client_stats):
+                self.client_stats[client_id]['cpu_count'].append(stats['cpu_count'])
+                # self.client_stats[client_id]['disk_usage'].append(stats['disk_usage'])
+                self.client_stats[client_id]['cpu_frequency'].append(stats['cpu_frequency'])
+                # self.client_stats[client_id]['cpu_stats'].append(stats['cpu_stats'])
+                # self.client_stats[client_id]['net_stats'].append(stats['net_stats'])
+                self.client_stats[client_id]['ram_usage'].append(stats['ram_usage'])
+                # self.client_stats[client_id]['net_counters'].append(stats['net_counters'])
 
 
-        else:
-            self.client_stats[client_id] = {}
-            self.client_stats[client_id]['cpu_count']      =  [stats['cpu_count']]
-            # self.client_stats[client_id]['disk_usage']     =  [stats['disk_usage']]
-            self.client_stats[client_id]['cpu_frequency']  =  [stats['cpu_frequency']]
-            # self.client_stats[client_id]['cpu_stats']      =  [stats['cpu_stats']]
-            # self.client_stats[client_id]['net_stats']      =  [stats['net_stats']]
-            self.client_stats[client_id]['ram_usage']      =  [stats['ram_usage']]
-            # self.client_stats[client_id]['net_counters']   =  [stats['net_counters']]
+            else:
+                self.client_stats[client_id] = {}
+                self.client_stats[client_id]['cpu_count']      =  [stats['cpu_count']]
+                # self.client_stats[client_id]['disk_usage']     =  [stats['disk_usage']]
+                self.client_stats[client_id]['cpu_frequency']  =  [stats['cpu_frequency']]
+                # self.client_stats[client_id]['cpu_stats']      =  [stats['cpu_stats']]
+                # self.client_stats[client_id]['net_stats']      =  [stats['net_stats']]
+                self.client_stats[client_id]['ram_usage']      =  [stats['ram_usage']]
+                # self.client_stats[client_id]['net_counters']   =  [stats['net_counters']]
+                
+            
+            if(client_id in self.round_clients):
+                print("already signed for the round.")
+            else:
+                self.round_clients.append(client_id)
+                self.client_parse_count += 1
+                print("newly participated clients for the round: " + str(self.client_parse_count))
+            
+
+            if(self.client_parse_count == int(self.active_session["num_clients"])):
+                print("all clients participated. Setting up aggregator and initiating training.")
+                self.broadcast_trainers()
+                self.assign_aggregator()
+                self.initiate_training()
+                self.active_session['rounds'][self.active_session['current_round']]['status'] = 'pending'
             
             
-
-        self.client_parse_count += 1
-
-
-        print(self.client_parse_count)
-        if(self.client_parse_count == int(self.active_session["num_clients"])):
-            print("all clients participated. Setting up aggregator and initiating training.")
-            self.client_parse_count = 0
-            self.assign_aggregator()
-            self.initiate_training()
+           
     
 
+    def broadcast_trainers(self):
+        trainers_list = json.dumps(self.round_clients)
+        print("Elected clients for training: " + trainers_list)
+        self.publish(self.CoTClT, "update_status"," -ids " + trainers_list)
+        self.round_clients = []
+        self.client_parse_count = 0
 
     def assign_aggregator(self):   
         client0 = next(iter(self.client_stats))
-        min_ram_usage = self.client_stats[client0]['ram_usage'][self.active_session['current_round']]
+        min_ram_usage = self.client_stats[client0]['ram_usage'][len(self.client_stats[client0]['ram_usage'])-1]
         for client in self.client_stats:
-            if(self.client_stats[client]['ram_usage'][self.active_session['current_round']] < min_ram_usage):
-                min_ram_usage = self.client_stats[client]['ram_usage'][self.active_session['current_round']]
+            client_ram_usage = self.client_stats[client]['ram_usage'][len(self.client_stats[client]['ram_usage'])-1]
+            if(client_ram_usage < min_ram_usage):
+                min_ram_usage = client_ram_usage
                 client0 = client
         print("Elected client " + client0 + " due to minimum ram usage of " + str(min_ram_usage))
         self.active_session['rounds'][self.active_session['current_round']]['aggregator'] = client0
@@ -102,8 +121,8 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
     def initiate_training(self):
         self.publish(self.CoTClT,"client_update"," -num_epochs " + str(self.active_session['num_epochs']) + " -batch_size " + str(self.active_session['batch_size']) )
     
-    def order_client_resources(self) : 
-        self.publish(self.CoTClT , "echo_resources" , "")
+    def order_client_resources(self,model_name, dataset_name) : 
+        self.publish(self.CoTClT , "echo_resources" , " -model_name " + model_name + " -dataset_name " + dataset_name)
 
     #run new_training_session -session_name se1 -dataset_name MNIST -model_name MNISTMLP -num_clients 2 -num_rounds 100
     #run new_training_session -session_name CIFAR10_VGG3_se1 -dataset_name CIFAR10 -model_name VGG3 -num_clients 2 -num_epochs 1 -batch_size 100 -num_rounds 10
@@ -122,10 +141,11 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         self.active_session = new_session
         self.sessions.append(new_session)
         self.sessions.append(new_session)
+        self.client_stats = {}
         print("New training session created. Waiting for FL Initiation command.")
     
     def Initiate_FL(self):
-        self.order_client_resources()
+        self.order_client_resources(self.active_session['model_name'],self.active_session['dataset_name'])
 
     def Pause_FL(self):
         return
@@ -146,7 +166,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
             self.active_session['current_round'] += 1
             new_round = {'participants' : [], 'status': '', 'aggregator':''}
             self.active_session['rounds'].append(new_round)
-            self.order_client_resources()
+            self.order_client_resources(self.active_session['model_name'],self.active_session['dataset_name'])
         else:
             print("Max number of trainings reached. Session is complete. Saving logs")
             self.save_logs()
@@ -163,7 +183,12 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
             print("client " + client_id + " has already acknowledged training is complete.")
         else:
             self.active_session['rounds'][self.active_session['current_round']]['participants'].append(client_id)
-            if(len(self.active_session['rounds'][self.active_session['current_round']]['participants']) == self.active_session['num_clients']-1):
+            max_participants_th = self.active_session['num_clients']
+            print("Aggregator is " + self.active_session['rounds'][self.active_session['current_round']]['aggregator'])
+            print("Participants are " + str(self.active_session['rounds'][self.active_session['current_round']]['participants']))
+            # if( self.active_session['rounds'][self.active_session['current_round']]['aggregator'] in  self.active_session['rounds'][self.active_session['current_round']]['participants']):
+            #     max_participants_th -= 1
+            if(len(self.active_session['rounds'][self.active_session['current_round']]['participants']) == max_participants_th):
                 print("Max number of participating clients reached. \nNumber of clients: " + str(self.active_session['num_clients']))
                 for c in self.active_session['rounds'][self.active_session['current_round']]['participants']:
                     self.publish(self.CoTClT,"send_local", " -id " + c)
@@ -179,7 +204,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
             self.Initiate_FL()
 
         if header_parts[2] == 'order_client_resources' : 
-            self.order_client_resources()
+            self.order_client_resources(self.active_session['model_name'],self.active_session['dataset_name'])
 
         if header_parts[2] == 'parse_client_stats' : 
             self.parse_client_stats( header_parts[0],body)
