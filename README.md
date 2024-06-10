@@ -1,2 +1,2 @@
-# DFLMQ
-An API for Decentralized Federated Learning over MQTT communication.
+# SDFLMQ
+An API for Semi-Decentralized Federated Learning over MQTT communication.
