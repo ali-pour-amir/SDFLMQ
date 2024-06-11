@@ -59,7 +59,7 @@ class PubSub_Base_Executable:
 #SECTION:: CONNECTIVITY
 
         def msg_parse(self, client, userdata, msg):
-            # try: 
+            try: 
                 #print("MESSAGE: " + msg.payload.decode())
                 header_body = str(msg.payload.decode()).split('::')
                 # print("MESSAGE Header: " + header_body[0])
@@ -83,8 +83,8 @@ class PubSub_Base_Executable:
                 else:
                     body = header_body[1]
                 self.execute_on_msg(header_parts, body)
-            # except:
-            #     print("Message was not right!")
+            except Exception as e:  
+                print("Message was not right, or something wrong with one of the internal functions! See below:\n" + repr(e))
 
 
         def execute_on_msg (self, header_parts, body):                             ### TO OVERRIDE IN SUCCEEDING CLASSES            
