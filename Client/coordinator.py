@@ -38,7 +38,10 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         self.active_session = {}
         self.client_stats = {}
         self.round_clients = []
+        
+        self.clients_sent_local_params = {}
 
+        self.client_parse_count = 0
 
     #         'cpu_count'     : psutil.cpu_count() ,
     #         'disk_usage'    : psutil.disk_usage("/") ,
@@ -49,9 +52,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
     #         'net_counters'  : psutil.net_io_counters()}
 
 
-    clients_sent_local_params = {}
-
-    client_parse_count = 0
+   
 
     def parse_client_stats(self , client_id, statsstr) : 
 
@@ -142,6 +143,9 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         self.sessions.append(new_session)
         self.sessions.append(new_session)
         self.client_stats = {}
+        self.round_clients = []
+        self.clients_sent_local_params = {}
+        self.client_parse_count = 0
         print("New training session created. Waiting for FL Initiation command.")
     
     def Initiate_FL(self):
