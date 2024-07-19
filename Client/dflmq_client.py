@@ -7,6 +7,7 @@ from Global import base_io
 import numpy as np
 import psutil
 import json
+import os
 
 class DFLMQ_Client(PubSub_Base_Executable) :
     def __init__(self , 
@@ -23,6 +24,9 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         self.ClTCoT = "Cli_to_Coo_T"
         self.PSTCoT = "PS_to_Cli_T"
         self.PSTCliIDT = "PS_to_Cli_ID_"
+        os.system('setterm -background yellow -foreground black')
+        os.system('clear')
+        
         
         super().__init__(
                     myID , 
@@ -128,6 +132,8 @@ class DFLMQ_Client(PubSub_Base_Executable) :
     def set_aggregator(self,id):
         if(id == self.id):
             self.aggregator.is_aggregator = True
+            os.system('setterm -background blue -foreground white')
+            os.system('clear')
             if(self.aggregator.current_agg_topic_r != "-1"):
                 self.client.unsubscribe(self.aggregator.current_agg_topic_r)
             
@@ -136,6 +142,8 @@ class DFLMQ_Client(PubSub_Base_Executable) :
             self.client.subscribe(self.aggregator.current_agg_topic_r)
         else:
             self.aggregator.is_aggregator = False
+            os.system('setterm -background yellow -foreground black')
+            os.system('clear')
             if(self.aggregator.current_agg_topic_r != "-1"):
                 self.client.unsubscribe(self.aggregator.current_agg_topic_r)
 

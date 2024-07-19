@@ -127,6 +127,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
 
     #run new_training_session -session_name se1 -dataset_name MNIST -model_name MNISTMLP -num_clients 2 -num_rounds 100
     #run new_training_session -session_name CIFAR10_VGG3_se1 -dataset_name CIFAR10 -model_name VGG3 -num_clients 2 -num_epochs 1 -batch_size 100 -num_rounds 10
+    #run new_training_session -session_name MNIST_MLP_se1 -dataset_name MNIST -model_name MNISTMLP -num_clients 2 -num_epochs 1 -batch_size 5000 -num_rounds 5
     def create_new_session(self,session,dataset,model,num_clients, num_epochs, batch_size, rounds):
         new_session = {}
         new_session['session_name'] = session
