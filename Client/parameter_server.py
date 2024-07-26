@@ -27,6 +27,7 @@ class dflmq_parameter_server(PubSub_Base_Executable):
         self.PSTCliIDT = "PS_to_Cli_ID_"
         self.executables.append('broadcast_model')
         self.executables.append('publish_dataset')
+        
         super().__init__(
                     myID , 
                     broker_ip , 

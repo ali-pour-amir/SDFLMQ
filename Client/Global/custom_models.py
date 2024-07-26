@@ -61,3 +61,10 @@ class MNISTMLP(nn.Module):
 
  
 
+def get_model_class(model_name):
+    logic_model = None
+    if(model_name.find("VGG")>=0):
+        logic_model = VGG(model_name)
+    elif(model_name == "MNISTMLP"):
+        logic_model = MNISTMLP()
+    return logic_model

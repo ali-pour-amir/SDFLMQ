@@ -1,3 +1,4 @@
+import Global.custom_models
 from Global.custom_models import VGG,MNISTMLP
 import json
 import torch
@@ -19,7 +20,6 @@ class dflmq_client_app_logic():
         self.simulated_logic_data_test = None
         self.simulated_logic_dataset_name = None
        
-
         self.executables = ['construct_logic_model', 'collect_logic_model', 'collect_logic_data', 'load_model', 'load_dataset']
 
     def load_model(self, model_name):
@@ -42,13 +42,12 @@ class dflmq_client_app_logic():
             self.simulated_logic_data_test = data2
             print("Test dataset loaded. set size: " + str(len(data2)))
     
-    def construct_logic_model(self, model_name):
-        if(model_name.find("VGG")>=0):
-            self.logic_model = VGG(model_name)
-        elif(model_name == "MNISTMLP"):
-            self.logic_model = MNISTMLP()
-        
+    def construct_logic_model(self, model_name, model_params):
+        self.logic_model = Global.custom_models.get_model_class(model_name)
         self.logic_model_name = model_name
+
+        self.collect_logic_model(model_params)
+
         dir = self.root_directory + "/models/"
         base_io.save_file(dir,model_name,self.logic_model)
     
@@ -76,7 +75,6 @@ class dflmq_client_app_logic():
         base_io.save_file(dir,dataset_name+"_training",loaded_dataset["trainset"])
         base_io.save_file(dir,dataset_name+"_testing",loaded_dataset["testset"])
         
-
     def get_model(self):
         return 0
     
@@ -97,8 +95,8 @@ class dflmq_client_app_logic():
                 model_name = body.split('-model_name ')[1].split(' -model_params ')[0]
                 model_params = body.split(' -model_params ')[1].split(';')[0]
             
-                self.construct_logic_model(model_name)
-                self.collect_logic_model(model_params)
+                self.construct_logic_model(model_name, model_params)
+               
         
         if header_parts[2] == 'collect_logic_data':
             print("received collect data command. parsing command ...")
