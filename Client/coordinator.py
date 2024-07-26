@@ -10,7 +10,8 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                 introduction_topic : str , 
                 controller_executable_topic : str , 
                 controller_echo_topic : str ,
-                start_loop : bool) -> None : 
+                start_loop : bool,
+                plot_stats : bool) -> None : 
         
         self.CoTClT = "Coo_to_Cli_T" # publish 
         self.CiTCoT = "Cli_to_Coo_T" # subscribe
@@ -50,9 +51,6 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
     #         'net_stats'     : psutil.net_if_stats() ,
     #         'ram_usage'     : psutil.virtual_memory()[3]/1000000000 ,
     #         'net_counters'  : psutil.net_io_counters()}
-
-
-   
 
     def parse_client_stats(self , client_id, statsstr) : 
 
@@ -148,6 +146,16 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         self.clients_sent_local_params = {}
         self.client_parse_count = 0
         print("New training session created. Waiting for FL Initiation command.")
+
+    # def plot_acc_loss(self):
+    #     x.append(i)
+    #     rand = np.random.randint(0,100)
+    #     y.append(rand)
+    #     z.append(100 - rand)
+    #     plt.plot(x,y,color='blue')
+    #     plt.plot(x, z,color='red')
+    #     plt.pause(0.1)
+
     
     def Initiate_FL(self):
         self.order_client_resources(self.active_session['model_name'],self.active_session['dataset_name'])
