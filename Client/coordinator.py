@@ -1,6 +1,7 @@
 from Global.executable_class import PubSub_Base_Executable
 import json
 import ast
+import matplotlib as plt
 class DFLMQ_Coordinator(PubSub_Base_Executable) :
 
     def __init__(self , 
@@ -39,7 +40,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         self.active_session = {}
         self.client_stats = {}
         self.round_clients = []
-        
+        self.plot_stats = plot_stats
         self.clients_sent_local_params = {}
 
         self.client_parse_count = 0
@@ -123,6 +124,23 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
     def order_client_resources(self,model_name, dataset_name) : 
         self.publish(self.CoTClT , "echo_resources" , " -model_name " + model_name + " -dataset_name " + dataset_name)
 
+
+    def plot_accloss(self,acc,loss, rounds = 0, init = False):
+      
+        if(init): 
+            plt.axis([0, rounds, 0.0, 1.0])
+            self.plt_step = []
+            self.plt_acc = []
+            self.plt_loss = []
+        else:
+            self.plt_step.append(len(self.plt_step) + 1)
+            self.plt_acc.append(acc)
+            self.plt_loss.append(loss)
+
+        plt.plot(self.plt_step,self.plt_loss,color='red')
+        plt.plot(self.plt_step,self.plt_acc,color='blue')
+        plt.pause(0.1)
+
     #run new_training_session -session_name se1 -dataset_name MNIST -model_name MNISTMLP -num_clients 2 -num_rounds 100
     #run new_training_session -session_name CIFAR10_VGG3_se1 -dataset_name CIFAR10 -model_name VGG3 -num_clients 2 -num_epochs 1 -batch_size 100 -num_rounds 10
     #run new_training_session -session_name MNIST_MLP_se1 -dataset_name MNIST -model_name MNISTMLP -num_clients 2 -num_epochs 1 -batch_size 5000 -num_rounds 5
@@ -145,6 +163,10 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         self.round_clients = []
         self.clients_sent_local_params = {}
         self.client_parse_count = 0
+
+        if(self.plot_stats == True):
+            self.plot_accloss(rounds = rounds, init = True)
+
         print("New training session created. Waiting for FL Initiation command.")
 
     # def plot_acc_loss(self):
@@ -268,6 +290,9 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
             self.active_session['rounds'][self.active_session['current_round']]['acc'] = str(model_acc)
             self.active_session['rounds'][self.active_session['current_round']]['loss'] = str(model_loss)
             print("Client " + client_id + " has reported aggregation is complete. Requesting for global model propagation.")
+
+            if(self.plot_stats == True):
+                self.plot_accloss(model_acc,model_loss)
             self.publish(self.CoTClT,"propagate_global","")
         
         if(header_parts[2] == 'global_model_propagated'):
