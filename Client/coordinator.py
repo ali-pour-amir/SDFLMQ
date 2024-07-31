@@ -1,7 +1,10 @@
 from Global.executable_class import PubSub_Base_Executable
 import json
 import ast
-import matplotlib as plt
+import matplotlib.pyplot as plt
+import threading
+import random
+
 class DFLMQ_Coordinator(PubSub_Base_Executable) :
 
     def __init__(self , 
@@ -79,7 +82,10 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                 self.client_stats[client_id]['ram_usage']      =  [stats['ram_usage']]
                 # self.client_stats[client_id]['net_counters']   =  [stats['net_counters']]
                 
-            
+            if((client_id in self.mem_usage_track) == False):
+                self.mem_usage_track[client_id] = []
+                self.total_mem_usage[client_id] = []
+
             if(client_id in self.round_clients):
                 print("already signed for the round.")
             else:
@@ -91,7 +97,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
             if(self.client_parse_count == int(self.active_session["num_clients"])):
                 print("all clients participated. Setting up aggregator and initiating training.")
                 self.broadcast_trainers()
-                self.assign_aggregator()
+                self.assign_aggregator(assignment_criteria="random")
                 self.initiate_training()
                 self.active_session['rounds'][self.active_session['current_round']]['status'] = 'pending'
             
@@ -106,15 +112,26 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         self.round_clients = []
         self.client_parse_count = 0
 
-    def assign_aggregator(self):   
+    def assign_aggregator(self,assignment_criteria):   
         client0 = next(iter(self.client_stats))
-        min_ram_usage = self.client_stats[client0]['ram_usage'][len(self.client_stats[client0]['ram_usage'])-1]
-        for client in self.client_stats:
-            client_ram_usage = self.client_stats[client]['ram_usage'][len(self.client_stats[client]['ram_usage'])-1]
-            if(client_ram_usage < min_ram_usage):
-                min_ram_usage = client_ram_usage
-                client0 = client
-        print("Elected client " + client0 + " due to minimum ram usage of " + str(min_ram_usage))
+
+        if(assignment_criteria == "max_mem"):
+            min_ram_usage = self.client_stats[client0]['ram_usage'][len(self.client_stats[client0]['ram_usage'])-1]
+            for client in self.client_stats:
+                client_ram_usage = self.client_stats[client]['ram_usage'][len(self.client_stats[client]['ram_usage'])-1]
+                if(client_ram_usage < min_ram_usage):
+                    min_ram_usage = client_ram_usage
+                    client0 = client
+            print("Elected client " + client0 + " due to minimum ram usage of " + str(min_ram_usage))
+        elif(assignment_criteria == "random"):
+            randc = random.randint(0,len(self.client_stats)-1)
+            print(len(self.client_stats))
+            print(randc)
+            
+            client0 = list(self.client_stats.keys())[randc]
+
+            print("Randomly elected client " + client0 + ".")
+
         self.active_session['rounds'][self.active_session['current_round']]['aggregator'] = client0
         self.publish(self.CoTClT,"set_aggregator"," -id " + client0)
 
@@ -124,22 +141,47 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
     def order_client_resources(self,model_name, dataset_name) : 
         self.publish(self.CoTClT , "echo_resources" , " -model_name " + model_name + " -dataset_name " + dataset_name)
 
-
+    
     def plot_accloss(self,acc,loss, rounds = 0, init = False):
       
-        if(init): 
-            plt.axis([0, rounds, 0.0, 1.0])
+        if(init == True): 
+            self.plot_fig, (self.plot_ax_accloss, self.plot_ax_mem,self.plot_ax_total_mem) = plt.subplots(3,1,layout='constrained') # fig : figure object, ax : Axes object
+            self.plot_ax_accloss.set_xlabel('round')
+            self.plot_ax_accloss.set_xlim((0,rounds))
+            
+            self.plot_ax_accloss.set_ylim((0.0,1.0))
+            self.plot_ax_accloss.set_ylabel('prediction accuracy')
+
+            self.plot_ax_mem.set_xlim((0,rounds))
+            self.plot_ax_mem.set_ylabel('ram usage (bytes)')
+            self.plot_ax_mem.set_xlabel('round')
+
+            self.plot_ax_total_mem.set_xlim((0,rounds))
+            self.plot_ax_total_mem.set_ylabel('total ram usage (bytes)')
+            self.plot_ax_total_mem.set_xlabel('round')
+            
             self.plt_step = []
             self.plt_acc = []
             self.plt_loss = []
         else:
-            self.plt_step.append(len(self.plt_step) + 1)
-            self.plt_acc.append(acc)
-            self.plt_loss.append(loss)
+            self.plt_step.append(len(self.plt_step))
+            self.plt_acc.append(float(acc))
+            self.plt_loss.append(float(loss))
+           
+        # plt.plot(self.plt_step,self.plt_loss,color='red')
 
-        plt.plot(self.plt_step,self.plt_loss,color='red')
-        plt.plot(self.plt_step,self.plt_acc,color='blue')
+        self.plot_ax_accloss.plot(self.plt_step,self.plt_loss,color='red')
+        self.plot_ax_accloss.plot(self.plt_step,self.plt_acc,color='blue')
+        
+        for cl in self.mem_usage_track:
+            self.plot_ax_mem.plot(self.plt_step,self.mem_usage_track[cl])
+
+        for cl in self.total_mem_usage:
+            self.plot_ax_total_mem.plot(self.plt_step,self.total_mem_usage[cl])
+       
         plt.pause(0.1)
+        
+        # plt.show()
 
     #run new_training_session -session_name se1 -dataset_name MNIST -model_name MNISTMLP -num_clients 2 -num_rounds 100
     #run new_training_session -session_name CIFAR10_VGG3_se1 -dataset_name CIFAR10 -model_name VGG3 -num_clients 2 -num_epochs 1 -batch_size 100 -num_rounds 10
@@ -163,9 +205,15 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         self.round_clients = []
         self.clients_sent_local_params = {}
         self.client_parse_count = 0
-
+        self.mem_usage_track = {}
+        self.total_mem_usage = {}
         if(self.plot_stats == True):
-            self.plot_accloss(rounds = rounds, init = True)
+            print("Initialized acc,loss plot.")
+            # self.plot_thread = threading.Thread(target=self.plot_accloss,args=(0,0,rounds,True))
+            # self.plot_thread.start()
+            # self.plot_thread.join()
+            
+            self.plot_accloss(0,0,rounds = int(rounds), init = True)
 
         print("New training session created. Waiting for FL Initiation command.")
 
@@ -205,6 +253,8 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         else:
             print("Max number of trainings reached. Session is complete. Saving logs")
             self.save_logs()
+            if(self.plot_stats):
+                plt.show()
 
     def save_logs(self):
         session_file = open(self.root_directory + "/"+self.active_session['session_name']+".txt",'w')
@@ -262,7 +312,16 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                                     num_rounds)
 
         if(header_parts[2] == 'local_training_complete'):
-            client_id = body.split(' -id ')[1].split(' -model_acc ')[0]
+            client_id = body.split(' -id ')[1].split(' -mem ')[0]
+            mem_usage = int(body.split(' -mem ')[1].split(';')[0])
+
+            self.mem_usage_track[client_id].append(mem_usage)
+            if(len(self.total_mem_usage[client_id]) > 0):
+                self.total_mem_usage[client_id].append(mem_usage + self.total_mem_usage[client_id][len(self.total_mem_usage[client_id])-1])
+            else:
+                self.total_mem_usage[client_id].append(mem_usage)
+            
+            
             # model_acc = body.split(' -model_acc ')[1].split(' -model_loss ')[0]
             # model_loss = body.split(' -model_loss ')[1].split(';')[0]
             print("checking client " + client_id + " as its training for the round is finished.")
@@ -286,13 +345,20 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         if(header_parts[2] == 'aggregation_complete'):
             client_id = body.split(' -id ')[1].split(' -model_acc ')[0]
             model_acc = body.split(' -model_acc ')[1].split(' -model_loss ')[0]
-            model_loss = body.split(' -model_loss ')[1].split(';')[0]
+            model_loss = body.split(' -model_loss ')[1].split(' -mem ')[0]
+            
+            mem_usage = int(body.split(' -mem ')[1].split(';')[0])
+            self.mem_usage_track[client_id][len(self.mem_usage_track[client_id])-1] += mem_usage 
+            self.total_mem_usage[client_id][len(self.total_mem_usage[client_id])-1] += mem_usage 
+           
+
             self.active_session['rounds'][self.active_session['current_round']]['acc'] = str(model_acc)
             self.active_session['rounds'][self.active_session['current_round']]['loss'] = str(model_loss)
             print("Client " + client_id + " has reported aggregation is complete. Requesting for global model propagation.")
 
             if(self.plot_stats == True):
-                self.plot_accloss(model_acc,model_loss)
+                self.plot_accloss(model_acc,model_loss,0,False)
+                
             self.publish(self.CoTClT,"propagate_global","")
         
         if(header_parts[2] == 'global_model_propagated'):
@@ -315,7 +381,8 @@ exec_program = DFLMQ_Coordinator(   myID = userID,
                                     introduction_topic='client_introduction',
                                     controller_executable_topic='controller_executable',
                                     controller_echo_topic="echo",
-                                    start_loop=False
+                                    start_loop=False,
+                                    plot_stats=True
 )
 
 exec_program.base_loop()

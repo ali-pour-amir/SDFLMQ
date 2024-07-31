@@ -13,6 +13,6 @@ for i in range(100):
     z.append(100 - rand)
     plt.plot(x,y,color='blue')
     plt.plot(x, z,color='red')
-    plt.pause(0.5)
+    plt.pause(0.1)
 
-plt.show()
+# plt.show()

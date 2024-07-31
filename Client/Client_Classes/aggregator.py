@@ -75,7 +75,7 @@ class dflmq_aggregator():
             test_correct = pred.eq(y_test.view_as(pred)).sum().item()
                 
 
-        test_loss /= len(test_dataset)
+        # test_loss /= len(test_dataset)
         acc = test_correct / len(test_dataset)
 
         print("test loss: " + str(test_loss))

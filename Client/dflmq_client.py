@@ -8,6 +8,7 @@ import numpy as np
 import psutil
 import json
 import os
+import tracemalloc
 
 class DFLMQ_Client(PubSub_Base_Executable) :
     def __init__(self , 
@@ -72,22 +73,34 @@ class DFLMQ_Client(PubSub_Base_Executable) :
                 if(self.trainer.is_trainer):
                     num_epochs = body.split(' -num_epochs ')[1].split(' -batch_size ')[0]
                     batch_size = body.split(' -batch_size ')[1].split(';')[0]
+
+                    tracemalloc.start()
+                    # tracemalloc.reset_peak()
                     updated_model = self.trainer.client_update( self.client_logic.simulated_logic_data_train,
                                                                 self.client_logic.logic_model,
                                                                 int(num_epochs),
                                                                 int(batch_size),
                                                                 round = 1)
+                    
+                    mem_usage = tracemalloc.get_traced_memory()[0]
+                    tracemalloc.stop()
+
                     self.client_logic.logic_model = updated_model
                     print("Local model updated.")
                 
                     
-                    self.publish(self.ClTCoT,"local_training_complete" , " -id " + str(self.id))
+                    self.publish(self.ClTCoT,"local_training_complete" , " -id " + str(self.id) + " -mem " + str(mem_usage)) #ADD RAM USAGE
                 
             if header_parts[2] == 'fed_average' :
                 if(self.aggregator.is_aggregator):
+                    
+                    tracemalloc.start()
+                    # tracemalloc.reset_peak()
                     self.client_logic.logic_model = self.aggregator.fed_average(self.client_logic.logic_model)
                     acc, loss = self.aggregator.agg_test(self.client_logic.logic_model,self.client_logic.simulated_logic_data_test)
-                    self.publish(self.ClTCoT,"aggregation_complete"," -id " + self.id + " -model_acc " + str(acc) + " -model_loss " + str(loss))
+                    mem_usage = tracemalloc.get_traced_memory()[0]
+                    tracemalloc.stop()
+                    self.publish(self.ClTCoT,"aggregation_complete"," -id " + self.id + " -model_acc " + str(acc) + " -model_loss " + str(loss) + " -mem " + str(mem_usage)) #ADD RAM USAGE
 
             if header_parts[2] == 'set_aggregator' : 
                 id = body.split('-id ')[1].split(';')[0]
