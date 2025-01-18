@@ -1,10 +1,13 @@
 import Global.custom_models
 from Global.custom_models import VGG,MNISTMLP
+from trainer import dflmq_trainer
+from dflmq_client import DFLMQ_Client
 import json
 import torch
 from io import BytesIO
 import base64
 import zlib
+import tracemalloc
 from Global import base_io
 
 class dflmq_client_app_logic():
@@ -13,14 +16,29 @@ class dflmq_client_app_logic():
 
         self.id = id
         self.is_simulating = is_simulating
-        self.root_directory = root_directory
+        self.root_directory = self.id+"_data"
         self.logic_model = None
         self.logic_model_name = ""
         self.simulated_logic_data_train = None
         self.simulated_logic_data_test = None
         self.simulated_logic_dataset_name = None
-       
+        self.trainer        = dflmq_trainer()
+    
         self.executables = ['construct_logic_model', 'collect_logic_model', 'collect_logic_data', 'load_model', 'load_dataset']
+
+        self.dflmq_client = DFLMQ_Client()
+
+        userID = input("Enter UserID: ")
+        print("User with ID : " + userID +" is created.")
+
+        exec_program = DFLMQ_Client(myID = userID,
+                                    broker_ip = 'localhost' ,
+                                    broker_port = 1883,
+                                    introduction_topic='client_introduction',
+                                    controller_executable_topic='controller_executable',
+                                    controller_echo_topic="echo",
+                                    start_loop=False)
+        exec_program.base_loop()
 
     def load_model(self, model_name):
         dir = self.root_directory + "/models/"
@@ -117,5 +135,42 @@ class dflmq_client_app_logic():
         if header_parts[2] == 'load_dataset':
             dataset_name = body.split('-dataset_name ')[1].split(';')[0]
             self.load_dataset(dataset_name)
+
+
+        if header_parts[2] == 'client_update' :
+                
+            if(self.trainer.is_trainer):
+                num_epochs = body.split(' -num_epochs ')[1].split(' -batch_size ')[0]
+                batch_size = body.split(' -batch_size ')[1].split(';')[0]
+
+                tracemalloc.start()
+                # tracemalloc.reset_peak()
+                updated_model = self.trainer.client_update( self.client_logic.simulated_logic_data_train,
+                                                            self.client_logic.logic_model,
+                                                            int(num_epochs),
+                                                            int(batch_size),
+                                                            round = 1)
+                
+                mem_usage = tracemalloc.get_traced_memory()[0]
+                tracemalloc.stop()
+
+                self.client_logic.logic_model = updated_model
+                print("Local model updated.")
+                self.publish(self.ClTCoT,"local_training_complete" , " -id " + str(self.id) + " -mem " + str(mem_usage)) #ADD RAM USAGE
+    
+        if header_parts[2] == 'send_local' : 
+            id = body.split('-id ')[1].split(';')[0]
+
+            ##TODO: Associate the following block of code to the dflmq_client so that the client code receives the model and the id, while processing the id, will determine whether to send the local model or not.
+            if(self.trainer.is_trainer):
+                if(id == "all" or id == self.id):
+                        if(self.aggregator.is_aggregator == False):       
+                            self.send_local()
+                        else:
+                            print("No need to send locals, client is aggregator. Informing coordinator.")
+                            self.publish(self.ClTCoT,"aggregator_received_local_params"," -id " + self.id)
+                else:
+                    print("can't send local model params because client is not a trainer!")
+
             
         

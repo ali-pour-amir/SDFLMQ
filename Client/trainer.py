@@ -25,12 +25,7 @@ class dflmq_trainer():
         
         train_data, val_data = torch.utils.data.random_split(
             list(zip(x_train, y_train)), [train_size, val_size])
-       
-        
-        # x_train, y_train = zip(*train_data)
-        
-        # x_train = torch.stack(x_train)
-        # y_train = torch.tensor(y_train)
+
         
         x_val, y_val = zip(*val_data)
         x_val = torch.stack(x_val)
@@ -78,11 +73,3 @@ class dflmq_trainer():
         #     val_correct = val_pred.eq(y_val.view_as(val_pred)).sum().item()
         #     val_accuracy = val_correct / len(y_val)
         #     print(f" Client {i + 1} validation accuracy: {val_accuracy:.4f}")
-
-    def _execute_on_msg(self,header_parts, body):
-        return 0
-        # if header_parts[2] == '' : 
-        #     self.()
-        
-    
-    
