@@ -2,6 +2,7 @@ import paho.mqtt.client as mqtt
 import time as T
 import re
 import os
+from topics import MQTTFC_Base
 
 msg_size_limit = 10000000 #characters
 
@@ -26,15 +27,23 @@ class PubSub_Base_Executable:
         connection_timeout = 3600
 
 #SECTION:: STARTUP
-        def __init__(self,myID,broker_ip, broker_port, introduction_topic, controller_executable_topic,controller_echo_topic, start_loop):
+        def __init__(self,
+                     myID,
+                     broker_ip,
+                     broker_port,
+                     #introduction_topic,
+                     #controller_executable_topic,
+                     #controller_echo_topic,
+                     start_loop):
 
+            topics = MQTTFC_Base()
 
             self.id = myID
             self.broker_ip = broker_ip
             self.broker_port = broker_port
-            self.introduction_topic = introduction_topic
-            self.controller_executable_topic = controller_executable_topic
-            self.controller_echo_topic = controller_echo_topic
+            self.introduction_topic = topics.introduction_topic
+            self.controller_executable_topic = topics.controller_executable_topic
+            self.controller_echo_topic = topics.controller_echo_topic
 
             self.msg_batch_queue = {} #{payload_id, [batch_id, msg_payload]}
 

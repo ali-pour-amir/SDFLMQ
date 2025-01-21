@@ -1,15 +1,22 @@
 
-from Global.executable_class import PubSub_Base_Executable
-from Client_Classes.aggregator import dflmq_aggregator
-from Client_Classes.application_logic import dflmq_client_app_logic
-from Global import base_io
+from Base.executable_class import PubSub_Base_Executable
+from Modules.Client_Modules.aggregator import SDFLMQ_Aggregator
+from Modules.Client_Modules.role_arbiter import Role_Arbiter
+from Modules.model_controller import Model_Controller
+
+from Base.topics import SDFLMQ_
+
+# from Modules.model_controller import ...
+# from Modules.role_arbiter import ...
+
+from Base import base_io
 import numpy as np
 import psutil
 import json
 import os
 import tracemalloc
 
-class DFLMQ_Client(PubSub_Base_Executable) :
+class SDFLMQ_Client(PubSub_Base_Executable) :
     def __init__(self , 
                  myID : str , 
                  broker_ip : str , 
@@ -19,14 +26,14 @@ class DFLMQ_Client(PubSub_Base_Executable) :
                  controller_echo_topic : str ,
                  start_loop : bool) -> None : 
         
-        
-        self.CoTClT = "Coo_to_Cli_T"
-        self.ClTCoT = "Cli_to_Coo_T"
-        self.PSTCoT = "PS_to_Cli_T"
-        self.PSTCliIDT = "PS_to_Cli_ID_"
+        topics = SDFLMQ_()
+        self.CoTClT = topics.CoTClT
+        self.ClTCoT = topics.ClTCoT
+        self.PSTCoT = topics.PSTCoT
+        self.PSTCliIDT = topics.PSTCliIDT
+
         os.system('setterm -background yellow -foreground black')
         os.system('clear')
-        
         
         super().__init__(
                     myID , 
@@ -36,25 +43,26 @@ class DFLMQ_Client(PubSub_Base_Executable) :
                     controller_executable_topic , 
                     controller_echo_topic , 
                     start_loop)
-
- 
         
-        self.aggregator     = dflmq_aggregator()
+        self.aggregator     = SDFLMQ_Aggregator()
+        self.arbiter        = Role_Arbiter()
+        self.controller     = Model_Controller()
 
-        self.executables.extend(['echo_resources', 'client_update','fed_average','set_aggregator','send_local','receive_local','propagate_global', 'update_status'])
-        
+        self.executables.extend(['echo_resources', 
+                                 'client_update',
+                                 'fed_average',
+                                 'set_aggregator',
+                                 'send_local',
+                                 'receive_local',
+                                 'propagate_global',
+                                 'update_status'])
+    
         self.executables.extend(self.aggregator.executables)
-
         self.client.subscribe(self.CoTClT)
         self.client.subscribe(self.PSTCoT)
         self.client.subscribe(self.PSTCliIDT + self.id)
-        
-    # def _get_header_body(self , msg) -> list :
-    #     header_body = str(msg.payload.decode()).split('::')
-    #     print("MESSAGE Header: " + header_body[0])
 
-    #     header_parts = header_body[0].split('|')
-    #     return header_parts
+
 
     def _execute_on_msg  (self, header_parts, body): 
         # try:
@@ -105,7 +113,7 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         # except:
         #     print("Something in the command message was not right! Try again.")
 
-    def set_aggregator(self,id):
+    def set_aggregator(self,id): #TODO: Move this to the Role Arbiter module
         if(id == self.id):
             self.aggregator.is_aggregator = True
             os.system('setterm -background blue -foreground white')
@@ -140,7 +148,7 @@ class DFLMQ_Client(PubSub_Base_Executable) :
         self.publish(self.aggregator.current_agg_topic_s,"receive_local"," -id " + self.id + " -model_params " + str(model_params))
         print("Model parameters published to aggregator.")
     
-    def propagate_global(self):
+    def propagate_global(self): #TODO: Move this to Parameter Server Logic
         weights_and_biases = {}
         for name, param in self.client_logic.logic_model.named_parameters():
             weights_and_biases[name] = param.data.tolist()
@@ -157,7 +165,29 @@ class DFLMQ_Client(PubSub_Base_Executable) :
 
     def echo_resources(self,res_msg) -> None : 
         self.publish(topic=self.ClTCoT,func_name="parse_client_stats",msg=res_msg)
-        
+    
+    def create_fl_session(self, 
+                            session_id,
+                            session_time,
+                            session_capacity,
+                            model):
+        return
+    
+    def join_fl_session(self, session_id):
+        return
+    
+    def session_ack(self):
+        return
+    
+    def leave_session(self, session_id):
+        return
+    
+    def wait_for_updated_model(self):
+        return
+    
+    # def _get_header_body(self , msg) -> list :
+    #     header_body = str(msg.payload.decode()).split('::')
+    #     print("MESSAGE Header: " + header_body[0])
 
-
-
+    #     header_parts = header_body[0].split('|')
+    #     return header_parts

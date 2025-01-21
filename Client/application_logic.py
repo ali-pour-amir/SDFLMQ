@@ -22,6 +22,8 @@ class dflmq_client_app_logic():
         self.simulated_logic_data_train = None
         self.simulated_logic_data_test = None
         self.simulated_logic_dataset_name = None
+
+
         self.trainer        = dflmq_trainer()
     
         self.executables = ['construct_logic_model', 'collect_logic_model', 'collect_logic_data', 'load_model', 'load_dataset']

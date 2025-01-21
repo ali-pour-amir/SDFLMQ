@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 
-class dflmq_aggregator():
+class SDFLMQ_Aggregator():
     
     def __init__(self)-> None:
         self.executables = []

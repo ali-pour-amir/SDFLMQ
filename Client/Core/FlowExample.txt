@@ -1,0 +1,29 @@
+#Example flow of using sdflmq as an API:
+
+from sdflmq_client_logic import SDFLMQ_Client
+
+client  = SDFLMQ_Client(params,
+                        can_be_aggregator)
+
+
+#if client is the initiator:
+    --> create model()
+    client.create_fl_session(session_id,
+                         session_time,
+                         session_capacity,
+                         model)
+
+
+#if client wants to join:
+    client.join_fl_session(session_id)
+    --> receive model()
+
+--> train model()
+
+client.send_model(session_id)
+
+#if client is not an aggregator:
+client.wait_for_updated_model()
+
+
+
