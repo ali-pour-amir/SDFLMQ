@@ -1,4 +1,4 @@
-
+#This is legacy client
 from Global.executable_class import PubSub_Base_Executable
 from Client_Classes.aggregator import dflmq_aggregator
 from Client_Classes.trainer import dflmq_trainer
