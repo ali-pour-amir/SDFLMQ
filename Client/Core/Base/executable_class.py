@@ -91,12 +91,12 @@ class PubSub_Base_Executable:
                         body = self.MQTT_msg_merge(header_parts[5])
                 else:
                     body = header_body[1]
-                self.execute_on_msg(header_parts, body)
+                self.__execute_on_msg(header_parts, body)
             except Exception as e:  
                 print("Message was not right, or something wrong with one of the internal functions! See below:\n" + repr(e))
 
 
-        def execute_on_msg (self, header_parts, body):                             ### TO OVERRIDE IN SUCCEEDING CLASSES            
+        def __execute_on_msg (self, header_parts, body):                             ### TO OVERRIDE IN SUCCEEDING CLASSES            
             if header_parts[2] == 'print':
                 body_split = body.split('-m ')[1].split(';')[0]
                 self.print(body_split)

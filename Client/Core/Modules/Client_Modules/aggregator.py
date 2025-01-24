@@ -15,8 +15,39 @@ class SDFLMQ_Aggregator():
         self.current_agg_topic_r = "-1"
         self.current_agg_topic_s = "-1"
     
-    def accumulate_params(self, params):
+    def __accumulate_params(self, params):
         self.client_model_params.append(params)
+
+
+    def __agg_test(self, global_model, test_dataset):
+        """This function test the global model on test data and returns test loss and test accuracy """
+        
+        test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=len(test_dataset), shuffle=True)
+        x_test, y_test = next(iter(test_loader))
+
+        global_model.eval()
+        test_loss = 0
+        correct = 0
+        criterion = nn.CrossEntropyLoss()
+        with torch.no_grad():
+            # for batch_indx, (data, target) in enumerate(test_loader):
+            # output = global_model(data)
+            # test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
+            # pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            # correct += pred.eq(target.view_as(pred)).sum().item()
+            output = global_model(x_test)
+            test_loss = criterion(output, y_test).item()
+            pred = output.argmax(dim=1, keepdim=True)
+            test_correct = pred.eq(y_test.view_as(pred)).sum().item()
+                
+
+        # test_loss /= len(test_dataset)
+        acc = test_correct / len(test_dataset)
+
+        print("test loss: " + str(test_loss))
+        print("test acc: " + str(acc))
+        return acc, test_loss
+    
 
     def fed_average(self, global_model):
         
@@ -52,37 +83,3 @@ class SDFLMQ_Aggregator():
         print("Fed_average complete. Clearing model updates, and sharing global model...")
         self.client_model_params = []
         return global_model
-   
-    def agg_test(self, global_model, test_dataset):
-        """This function test the global model on test data and returns test loss and test accuracy """
-        
-        test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=len(test_dataset), shuffle=True)
-        x_test, y_test = next(iter(test_loader))
-
-        global_model.eval()
-        test_loss = 0
-        correct = 0
-        criterion = nn.CrossEntropyLoss()
-        with torch.no_grad():
-            # for batch_indx, (data, target) in enumerate(test_loader):
-            # output = global_model(data)
-            # test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
-            # pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
-            # correct += pred.eq(target.view_as(pred)).sum().item()
-            output = global_model(x_test)
-            test_loss = criterion(output, y_test).item()
-            pred = output.argmax(dim=1, keepdim=True)
-            test_correct = pred.eq(y_test.view_as(pred)).sum().item()
-                
-
-        # test_loss /= len(test_dataset)
-        acc = test_correct / len(test_dataset)
-
-        print("test loss: " + str(test_loss))
-        print("test acc: " + str(acc))
-        return acc, test_loss
-    
-    def _execute_on_msg(self,header_parts, body):
-        return 0
-        # if header_parts[2] == '' : 
-        #     self.()

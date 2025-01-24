@@ -64,9 +64,10 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
 
 
 
-    def _execute_on_msg  (self, header_parts, body): 
+    def __execute_on_msg (self, header_parts, body): 
+        
         # try:
-            
+            super().execute_on_msg(header_parts, body) 
             if header_parts[2] == 'echo_resources' :
                 session_id = body.split(' -session_id ')[1].split(';')[0]
                 if(session_id == self.session_id):
@@ -89,7 +90,6 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
                 id = body.split('-id ')[1].split(';')[0]
                 self.set_aggregator(id)
 
-         
             if header_parts[2] == 'receive_local' : 
                 if(self.aggregator.is_aggregator):
                     id = body.split('-id ')[1].split(' -model_params ')[0]
@@ -113,34 +113,14 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         # except:
         #     print("Something in the command message was not right! Try again.")
 
-    def set_aggregator(self,id): #TODO: Move this to the Role Arbiter module
-        if(id == self.id):
-            self.aggregator.is_aggregator = True
-            os.system('setterm -background blue -foreground white')
-            os.system('clear')
-            if(self.aggregator.current_agg_topic_r != "-1"):
-                self.client.unsubscribe(self.aggregator.current_agg_topic_r)
-            self.aggregator.current_agg_topic_r = "c2a_agg_"+id
-            self.aggregator.current_agg_topic_s = "a2c_agg_"+id
-            self.client.subscribe(self.aggregator.current_agg_topic_r)
-        else:
-            self.aggregator.is_aggregator = False
-            os.system('setterm -background yellow -foreground black')
-            os.system('clear')
-            if(self.aggregator.current_agg_topic_r != "-1"):
-                self.client.unsubscribe(self.aggregator.current_agg_topic_r)
-            self.aggregator.current_agg_topic_s = "c2a_agg_"+id
-            self.aggregator.current_agg_topic_r = "a2c_agg_"+id
-            self.client.subscribe(self.aggregator.current_agg_topic_r)
-        print("Aggregator topic: " + str(self.aggregator.is_aggregator))
-   
-    def receive_local(self,id, params):
+
+    def __receive_local(self,id, params):
         model_params = json.loads(params)
         self.aggregator.accumulate_params(model_params)
         print("Received and archived client " + id + " local model parameters.")
         self.publish(self.ClTCoT,"aggregator_received_local_params"," -id " + id)
     
-    def send_local(self,logic_model):
+    def __send_local(self,logic_model):
         weights_and_biases = {}
         for name, param in logic_model.named_parameters():
             weights_and_biases[name] = param.data.tolist()
@@ -148,7 +128,7 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         self.publish(self.aggregator.current_agg_topic_s,"receive_local"," -id " + self.id + " -model_params " + str(model_params))
         print("Model parameters published to aggregator.")
     
-    def propagate_global(self): #TODO: Move this to Parameter Server Logic
+    def __propagate_global(self): #TODO: Move this to Parameter Server Logic
         weights_and_biases = {}
         for name, param in self.client_logic.logic_model.named_parameters():
             weights_and_biases[name] = param.data.tolist()
@@ -158,12 +138,7 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         print("Global model parameters published to clients. Informing Coordinator.")
         self.publish(self.ClTCoT,"global_model_propagated","")
     
-    def execute_on_msg(self, header_parts, body) -> None :
-        super().execute_on_msg(header_parts, body) 
-        self._execute_on_msg(header_parts, body)
-        self.aggregator.    _execute_on_msg(header_parts, body)
-
-    def echo_resources(self,res_msg) -> None : 
+    def __echo_resources(self,res_msg) -> None : 
         self.publish(topic=self.ClTCoT,func_name="parse_client_stats",msg=res_msg)
     
     def create_fl_session(self, 

@@ -281,8 +281,8 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         
         
 
-    def execute_on_msg(self, header_parts, body) -> None :
-        super().execute_on_msg(header_parts, body) 
+    def __execute_on_msg(self, header_parts, body) -> None :
+        super().__execute_on_msg(header_parts, body) 
         # header_parts = self._get_header_body(msg)
 
         if header_parts[2] == 'initiate_fl' : 

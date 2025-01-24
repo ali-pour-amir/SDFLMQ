@@ -1,9 +1,9 @@
 import json
 import torch
 import torch.nn as nn
-from Global.custom_models import VGG, MNISTMLP
-from Global.custom_datasets import CIFAR10, MNIST
-from Global.executable_class import PubSub_Base_Executable
+# from Global.custom_models import VGG, MNISTMLP
+# from Global.custom_datasets import CIFAR10, MNIST
+from Base.executable_class import PubSub_Base_Executable
 from io import BytesIO
 import zlib
 
@@ -37,11 +37,11 @@ class dflmq_parameter_server(PubSub_Base_Executable):
                     controller_echo_topic , 
                     start_loop)
 
-        self.model_stash   =   {'MNISTMLP' : MNISTMLP(),
-                                'VGG11' : VGG('VGG11'),
-                                'VGG3' : VGG('VGG3')}
-        self.dataset_stash        =   {'MNIST' : MNIST(),
-                                       'CIFAR10' : CIFAR10()}
+        # self.model_stash   =   {'MNISTMLP' : MNISTMLP(),
+        #                         'VGG11' : VGG('VGG11'),
+        #                         'VGG3' : VGG('VGG3')}
+        # self.dataset_stash        =   {'MNIST' : MNIST(),
+        #                                'CIFAR10' : CIFAR10()}
 
         self.client.subscribe(self.CoTPST)
 
@@ -51,7 +51,8 @@ class dflmq_parameter_server(PubSub_Base_Executable):
     #     header_parts = header_body[0].split('|')
     #     return header_parts
 
-    def _execute_on_msg(self,header_parts, body):
+    def __execute_on_msg(self,header_parts, body):
+        super().__execute_on_msg(header_parts, body)
         # header_parts = self._get_header_body(msg)
         if header_parts[2] == 'broadcast_model' :
             model_name = body.split('-model_name ')[1].split(';')[0]
@@ -65,11 +66,7 @@ class dflmq_parameter_server(PubSub_Base_Executable):
                 print("number of clients does not match with number of ids passed.")
             else:
                 self.publish_dataset(num_clients, dataset_name, ids)
-            
-            
-    def execute_on_msg(self,header_parts, body) -> None :
-        super().execute_on_msg(header_parts, body)
-        self._execute_on_msg(header_parts, body)
+
         
     def broadcast_model(self,model_name):
         model = self.model_stash[model_name]
