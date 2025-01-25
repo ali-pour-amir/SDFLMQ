@@ -119,6 +119,7 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         self.aggregator.accumulate_params(model_params)
         print("Received and archived client " + id + " local model parameters.")
         self.publish(self.ClTCoT,"aggregator_received_local_params"," -id " + id)
+        ###TODO: then call the model_update_callback
     
     def __send_local(self,logic_model):
         weights_and_biases = {}
@@ -150,29 +151,66 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
 
 
 
+    def __session_ack(self, ack_type):
+        
+        if(ack_type == "new_s"):
+            return
+        if(ack_type == "join_s"):
+            return
+        if(ack_type == "leave_s"):
+            return
+        if(ack_type == "delete_s"):
+            return
+        if(ack_type == "ready_s"):
+            return
+        
 
-
-
-
-    
     def create_fl_session(self, 
                             session_id,
                             session_time,
-                            session_capacity,
-                            model):
-        return
+                            session_capacity_min,
+                            session_capacity_max,
+                            waiting_time, #For both FL round contribution and session joining
+                            model_name,
+                            model_update_callback):
+        
+        print("Creating new session with session id:{session_id},"+
+               "session time: {session_time},"+
+               "min num of contributors: {session_capacity_min},"+
+               "max num of contributors: {session_capacity_max}" + "waiting time: {waiting_time}"+
+               "model name: {model_name}")
+        
+        self.model_update_callback = model_update_callback
+
+        self.publish(self.ClTCoT,"new_fl_session_request",  " -c_id " + str(self.id) + 
+                                                            " -s_id " + str(session_id) +
+                                                            " -s_time " + str(session_time) +
+                                                            " -s_c_min " + str(session_capacity_min) +
+                                                            " -s_c_max " + str(session_capacity_max) + 
+                                                            " -waiting_time " + str(waiting_time) + 
+                                                            " -model_name " + str(model_name))
+
     
     def join_fl_session(self, session_id):
-        return
-    
-    def session_ack(self):
-        return
+
+        self.publish(self.ClTCoT,"join_fl_session_request", " -c_id " + str(self.id) + 
+                                                            " -s_id " + str(session_id))
     
     def leave_session(self, session_id):
-        return
+        
+        self.publish(self.ClTCoT,"leave_fl_session_request", " -c_id " + str(self.id) + 
+                                                            " -s_id " + str(session_id))
     
-    def wait_for_updated_model(self):
-        return
+    
+    def delete_session(self, session_id):
+        self.publish(self.ClTCoT,"delete_fl_session_request", " -c_id " + str(self.id) + 
+                                                            " -s_id " + str(session_id))
+    
+    def initiate_session(self, session_id):
+        
+        self.publish(self.ClTCoT,"leave_fl_session_request", " -c_id " + str(self.id) + 
+                                                            " -s_id " + str(session_id))
+    
     
     # def _get_header_body(self , msg) -> list :
     #     header_body = str(msg.payload.decode()).split('::')
