@@ -2,7 +2,7 @@ import paho.mqtt.client as mqtt
 import time as T
 import re
 import os
-from topics import MQTTFC_Base
+from Core.Base.topics import MQTTFC_Base
 
 msg_size_limit = 10000000 #characters
 
@@ -207,6 +207,7 @@ class PubSub_Base_Executable:
             while(True):
                 error = ""
                 try:
+                    print("Client loop forever started ...")
                     self.client.loop_forever()
                 except OSError:
                     error = "Executable ran into error: " + OSError.strerror                                                                      
@@ -216,8 +217,53 @@ class PubSub_Base_Executable:
                         restore_count += 1
                         continue
                     else:
-                        self.echo_msg("Client " + self.id + " maximum number of restoration reached. Killing instance. Attempt to reinitialize.")
+                        self.echo_msg("Client " + self.id + " maximum number of restoration reached. Killing instance. Recommending re-running the code.")
                         return -1
+                    
+        
+        def oneshot_loop(self):
+            
+            restore_count = 0 # Restoration Cap is 10
+            while(restore_count < 10):
+                error = ""
+                try:
+                    print("Client one-shot loop started ...")
+                    self.client.loop()
+                    print("Client one-shot loop ended ...")
+                    return 0
+                except OSError:
+                    error = "Executable ran into error: " + OSError.strerror                                                                      
+                    self.echo_msg(error)
+                    self.echo_msg("Client " + self.id + " is Restoring program...")
+                    restore_count += 1
+                    continue
+                   
+            self.echo_msg("Client " + self.id + " maximum number of restoration reached. Killing instance. Recommending re-running the code.")
+            return -1
+        
+        
+        def parallel_loop(self):
+            
+            restore_count = 0 # Restoration Cap is 10
+            while(restore_count < 10):
+                error = ""
+                try:
+                    print("Client parallel loop started on separate thread ...")
+                    self.client.loop_start()
+                    return 0
+                except OSError:
+                    error = "Executable ran into error: " + OSError.strerror                                                                      
+                    self.echo_msg(error)
+                    self.echo_msg("Client " + self.id + " is Restoring program...")
+                    restore_count += 1
+                    continue
+                   
+            self.echo_msg("Client " + self.id + " maximum number of restoration reached. Killing instance. Recommending re-running the code.")
+            return -1
+        
+        def end_parallel_loop(self):
+            self.client.disconnect()
+            print("Parallel loop ended. Thread terminated ...")
                         
 
 

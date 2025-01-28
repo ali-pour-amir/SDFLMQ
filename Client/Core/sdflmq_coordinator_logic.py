@@ -1,4 +1,4 @@
-from Base.executable_class import PubSub_Base_Executable
+from Core.Base.executable_class import PubSub_Base_Executable
 import json
 import ast
 import matplotlib.pyplot as plt
@@ -11,9 +11,9 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                 myID : str , 
                 broker_ip : str , 
                 broker_port : int , 
-                introduction_topic : str , 
-                controller_executable_topic : str , 
-                controller_echo_topic : str ,
+                # introduction_topic : str , 
+                # controller_executable_topic : str , 
+                # controller_echo_topic : str ,
                 start_loop : bool,
                 plot_stats : bool) -> None : 
         
@@ -32,9 +32,9 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                     myID , 
                     broker_ip , 
                     broker_port , 
-                    introduction_topic , 
-                    controller_executable_topic , 
-                    controller_echo_topic , 
+                    # introduction_topic , 
+                    # controller_executable_topic , 
+                    # controller_echo_topic , 
                     start_loop)
         
         self.client.subscribe(self.CiTCoT)
@@ -47,14 +47,6 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         self.clients_sent_local_params = {}
 
         self.client_parse_count = 0
-
-    #         'cpu_count'     : psutil.cpu_count() ,
-    #         'disk_usage'    : psutil.disk_usage("/") ,
-    #         'cpu_frequency' : psutil.cpu_freq() ,
-    #         'cpu_stats'     : psutil.cpu_stats() ,
-    #         'net_stats'     : psutil.net_if_stats() ,
-    #         'ram_usage'     : psutil.virtual_memory()[3]/1000000000 ,
-    #         'net_counters'  : psutil.net_io_counters()}
 
     def parse_client_stats(self , client_id, statsstr) : 
 
@@ -100,11 +92,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                 self.assign_aggregator(assignment_criteria="random")
                 self.initiate_training()
                 self.active_session['rounds'][self.active_session['current_round']]['status'] = 'pending'
-            
-            
-           
-    
-
+                
     def broadcast_trainers(self):
         trainers_list = json.dumps(self.round_clients)
         print("Elected clients for training: " + trainers_list)
@@ -140,7 +128,6 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
     
     def order_client_resources(self,model_name, dataset_name) : 
         self.publish(self.CoTClT , "echo_resources" , " -model_name " + model_name + " -dataset_name " + dataset_name)
-
     
     def plot_accloss(self,acc,loss, rounds = 0, init = False):
       
@@ -217,15 +204,6 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
 
         print("New training session created. Waiting for FL Initiation command.")
 
-    # def plot_acc_loss(self):
-    #     x.append(i)
-    #     rand = np.random.randint(0,100)
-    #     y.append(rand)
-    #     z.append(100 - rand)
-    #     plt.plot(x,y,color='blue')
-    #     plt.plot(x, z,color='red')
-    #     plt.pause(0.1)
-
     
     def Initiate_FL(self):
         self.order_client_resources(self.active_session['model_name'],self.active_session['dataset_name'])
@@ -262,7 +240,6 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         json.dump(self.active_session,session_file)
         json.dump(self.client_stats,client_stats_file)
 
-
     def check_participant(self,client_id):
         if(client_id in self.active_session['rounds'][self.active_session['current_round']]['participants']):
             print("client " + client_id + " has already acknowledged training is complete.")
@@ -279,8 +256,6 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                     self.publish(self.CoTClT,"send_local", " -id " + c)
                 print("Asked clients to send their local model to the aggregator.")
         
-        
-
     def __execute_on_msg(self, header_parts, body) -> None :
         super().__execute_on_msg(header_parts, body) 
         # header_parts = self._get_header_body(msg)
@@ -364,27 +339,4 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         if(header_parts[2] == 'global_model_propagated'):
             print("Global model propagated. Completing round.")
             self.update_rounds()
-
-
-
-
-
-
-
-
-userID = input("Enter UserID: ")
-print("User with ID=" + userID +" is created.")
-
-exec_program = DFLMQ_Coordinator(   myID = userID,
-                                    broker_ip = 'localhost' ,
-                                    broker_port = 1883,
-                                    introduction_topic='client_introduction',
-                                    controller_executable_topic='controller_executable',
-                                    controller_echo_topic="echo",
-                                    start_loop=False,
-                                    plot_stats=True
-)
-
-exec_program.base_loop()
-
 
