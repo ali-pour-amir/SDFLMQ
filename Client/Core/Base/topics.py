@@ -6,7 +6,7 @@ class MQTTFC_Base():
         self.controller_echo_topic = "echo"
 
 
-class SDFLMQ_(MQTTFC_Base):
+class SDFLMQ_Topics(MQTTFC_Base):
     def __init__(self):
         super.__init__()
         self.CoTClT = "Coo_to_Cli_T"

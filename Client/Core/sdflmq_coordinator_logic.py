@@ -1,4 +1,9 @@
 from Core.Base.executable_class import PubSub_Base_Executable
+from Core.Base.topics import SDFLMQ_Topics
+from Core.Modules.Coordinator_Modules.session_manager import Session_Manager
+from Core.Modules.Coordinator_Modules.clustering_engine import Clustering_Engine
+from Core.Modules.Coordinator_Modules.load_balancer import Load_Balancer
+
 import json
 import ast
 import matplotlib.pyplot as plt
@@ -11,15 +16,17 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                 myID : str , 
                 broker_ip : str , 
                 broker_port : int , 
-                # introduction_topic : str , 
-                # controller_executable_topic : str , 
-                # controller_echo_topic : str ,
                 start_loop : bool,
                 plot_stats : bool) -> None : 
         
-        self.CoTClT = "Coo_to_Cli_T" # publish 
-        self.CiTCoT = "Cli_to_Coo_T" # subscribe
+        topics = SDFLMQ_Topics()
+        self.CoTClT = topics.CoTClT # publish 
+        self.CiTCoT = topics.ClTCoT # subscribe
 
+        self.session_manager = Session_Manager()
+        self.clustering_engine = Clustering_Engine()
+        self.load_balancer = Load_Balancer()
+        
         self.executables.append('order_client_resources')
         self.executables.append('parse_client_stats')
         self.executables.append('new_training_session')
@@ -28,25 +35,16 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         self.executables.append('aggregation_complete')
         self.executables.append('aggregator_received_local_params')
         self.executables.append('global_model_propagated')
+
         super().__init__(
                     myID , 
                     broker_ip , 
                     broker_port , 
-                    # introduction_topic , 
-                    # controller_executable_topic , 
-                    # controller_echo_topic , 
                     start_loop)
         
         self.client.subscribe(self.CiTCoT)
 
-        self.sessions = []
-        self.active_session = {}
-        self.client_stats = {}
-        self.round_clients = []
-        self.plot_stats = plot_stats
-        self.clients_sent_local_params = {}
 
-        self.client_parse_count = 0
 
     def parse_client_stats(self , client_id, statsstr) : 
 
@@ -170,51 +168,28 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         
         # plt.show()
 
-    #run new_training_session -session_name se1 -dataset_name MNIST -model_name MNISTMLP -num_clients 2 -num_rounds 100
-    #run new_training_session -session_name CIFAR10_VGG3_se1 -dataset_name CIFAR10 -model_name VGG3 -num_clients 2 -num_epochs 1 -batch_size 100 -num_rounds 10
-    #run new_training_session -session_name MNIST_MLP_se1 -dataset_name MNIST -model_name MNISTMLP -num_clients 2 -num_epochs 1 -batch_size 5000 -num_rounds 5
     def create_new_session(self,session,dataset,model,num_clients, num_epochs, batch_size, rounds):
         new_session = {}
         new_session['session_name'] = session
         new_session['dataset_name'] = dataset
         new_session['model_name'] = model
         new_session['num_clients'] = int(num_clients)
-        new_session['num_epochs'] = int(num_epochs)
-        new_session['batch_size'] = int(batch_size)
         new_session['num_rounds'] = int(rounds)
         new_session['current_round'] = 0
-        round = {'participants' : [], 'status': '', 'aggregator':'','acc':'','loss':''}
+        round = {'participants' : [],
+                 'status': '', 
+                 'cluster_topology':'',
+                 'acc':'',
+                 'loss':''}
+        
         new_session['rounds'] = [round]
-        self.active_session = new_session
-        self.sessions.append(new_session)
-        self.sessions.append(new_session)
-        self.client_stats = {}
-        self.round_clients = []
-        self.clients_sent_local_params = {}
-        self.client_parse_count = 0
-        self.mem_usage_track = {}
-        self.total_mem_usage = {}
-        if(self.plot_stats == True):
-            print("Initialized acc,loss plot.")
-            # self.plot_thread = threading.Thread(target=self.plot_accloss,args=(0,0,rounds,True))
-            # self.plot_thread.start()
-            # self.plot_thread.join()
-            
-            self.plot_accloss(0,0,rounds = int(rounds), init = True)
 
-        print("New training session created. Waiting for FL Initiation command.")
+        self.sessions.append(new_session)
+        
 
-    
     def Initiate_FL(self):
         self.order_client_resources(self.active_session['model_name'],self.active_session['dataset_name'])
 
-    def Pause_FL(self):
-        return
-    def Stop_FL(self):
-        return
-    def Resume_FL(self):
-        return
-    
     def Prepare_Aggregation(self):
         print("Asking aggregator to perform aggregation")
         self.publish(self.CoTClT,"fed_average","")
@@ -256,6 +231,12 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                     self.publish(self.CoTClT,"send_local", " -id " + c)
                 print("Asked clients to send their local model to the aggregator.")
         
+
+
+
+    def request_client_stats(self,session_id):
+        self.publish(topic=session_id,func_name="report_client_stats",msg="")
+
     def __execute_on_msg(self, header_parts, body) -> None :
         super().__execute_on_msg(header_parts, body) 
         # header_parts = self._get_header_body(msg)
@@ -340,3 +321,14 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
             print("Global model propagated. Completing round.")
             self.update_rounds()
 
+    def __new_fl_session_request(self,client_id,
+                                    session_id,
+                                    session_time,
+                                    session_capacity_min,
+                                    session_capacity_max, 
+                                    waiting_time, 
+                                    model_name):
+        self.create_new_session()
+    
+
+    

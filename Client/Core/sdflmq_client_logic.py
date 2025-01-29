@@ -4,7 +4,7 @@ from Modules.Client_Modules.aggregator import SDFLMQ_Aggregator
 from Modules.Client_Modules.role_arbiter import Role_Arbiter
 from Modules.model_controller import Model_Controller
 
-from Base.topics import SDFLMQ_
+from Base.topics import SDFLMQ_Topics
 
 # from Modules.model_controller import ...
 # from Modules.role_arbiter import ...
@@ -26,7 +26,7 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
                  controller_echo_topic : str ,
                  start_loop : bool) -> None : 
         
-        topics = SDFLMQ_()
+        topics = SDFLMQ_Topics()
         self.CoTClT = topics.CoTClT
         self.ClTCoT = topics.ClTCoT
         self.PSTCoT = topics.PSTCoT
@@ -139,7 +139,8 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         print("Global model parameters published to clients. Informing Coordinator.")
         self.publish(self.ClTCoT,"global_model_propagated","")
     
-    def __echo_resources(self,res_msg) -> None : 
+    
+    def __report_resources(self,res_msg) -> None : 
         self.publish(topic=self.ClTCoT,func_name="parse_client_stats",msg=res_msg)
     
 
