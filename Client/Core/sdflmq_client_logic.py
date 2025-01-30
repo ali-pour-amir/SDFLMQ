@@ -188,14 +188,21 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
                                                             " -s_time " + str(session_time) +
                                                             " -s_c_min " + str(session_capacity_min) +
                                                             " -s_c_max " + str(session_capacity_max) + 
-                                                            " -waiting_time " + str(waiting_time) + 
-                                                            " -model_name " + str(model_name))
+                                                            " -waiting_time " + str(waiting_time) +
+                                                            " -fl_rounds " + str(fl_rounds) + 
+                                                            " -model_name " + str(model_name)+
+                                                            " model_spec " + str(model_spec)+ 
+                                                            " memcap " + str(memcap) + 
+                                                            " mdatasize " + str(modelsize) + 
+                                                            " pspeed " + str(processing_speed))
 
     
-    def join_fl_session(self, session_id):
+    def join_fl_session(self, session_id, rounds, role):
 
         self.publish(self.ClTCoT,"join_fl_session_request", " -c_id " + str(self.id) + 
-                                                            " -s_id " + str(session_id))
+                                                            " -s_id " + str(session_id) + 
+                                                            " -s_rounds " + str(rounds) +
+                                                            " -c_role " + str(role))
     
     def leave_session(self, session_id):
         

@@ -34,8 +34,10 @@ class Session_Manager():
     def join_session(self,
                      session_id,
                      client_id,
+                     client_role,
                      model_name,
                      model_spec,
+                     fl_rounds,
                      memcap,
                      mdatasize,
                      pspeed):
@@ -44,12 +46,14 @@ class Session_Manager():
             if(self.sessions[session_id].model_name == model_name):
                 if(self.sessions[session_id].model_spec == model_spec):
                     new_client = Client(client_id,
+                                        client_role,
+                                        fl_rounds,
                                         memcap,
                                         mdatasize,
                                         pspeed)
                     self.sessions[session_id].add_client(new_client)
                      #TODO: Check if maximum capacity is hit, or waiting time is over and minimum capacity is hit, then start clusterizing the session.
-                     
+
 
 
     def plot_accloss(self,acc,loss, rounds = 0, init = False):

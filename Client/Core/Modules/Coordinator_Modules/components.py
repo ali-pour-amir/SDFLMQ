@@ -6,11 +6,13 @@ import datetime
 class Client :
     def __init__(self,
                  client_id,
+                 preferred_role,
                  memcap,
                  mdatasize,
                  pspeed) :
         
         self.client_id = client_id  
+        self.preferred_role = preferred_role
         self.memcap = memcap 
         self.pspeed = pspeed
         self.mdatasize = mdatasize

@@ -370,6 +370,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                                             client_id,
                                             model_name,
                                             model_spec,
+                                            fl_rounds,
                                             memcap,
                                             mdatasize,
                                             pspeed)
@@ -380,6 +381,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                                     client_id,
                                     model_name,
                                     model_spec,
+                                    fl_rounds,
                                     memcap,
                                     mdatasize,
                                     pspeed):
@@ -388,6 +390,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                                             client_id,
                                             model_name,
                                             model_spec,
+                                            fl_rounds,
                                             memcap,
                                             mdatasize,
                                             pspeed)
