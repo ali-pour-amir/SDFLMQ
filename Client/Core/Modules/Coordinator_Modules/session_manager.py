@@ -1,32 +1,56 @@
 import numpy as np
-
-
-class Session():
-    def __init__(self):
-        return
-    
+from Core.Modules.Coordinator_Modules.components import Cluster
+from Core.Modules.Coordinator_Modules.components import Cluster_Node
+from Core.Modules.Coordinator_Modules.components import Session
+from Core.Modules.Coordinator_Modules.components import Client
 
 class Session_Manager():
     def __init__(self):
-        self.sessions = []
+        self.sessions = {}
         
         
-    def create_new_session(self,session,dataset,model,num_clients, num_epochs, batch_size, rounds):
-        new_session = {}
-        new_session['session_name'] = session
-        new_session['dataset_name'] = dataset
-        new_session['model_name'] = model
-        new_session['num_clients'] = int(num_clients)
-        new_session['num_rounds'] = int(rounds)
-        new_session['current_round'] = 0
-        round = {'participants' : [],
-                 'status': '', 
-                 'cluster_topology':'',
-                 'acc':'',
-                 'loss':''}
-        new_session['rounds'] = [round]
+    def create_new_session(self,
+                            session_id,
+                            session_time,
+                            session_capacity_min,
+                            session_capacity_max, 
+                            waiting_time, 
+                            model_name,
+                            model_spec,
+                            fl_rounds):
 
-        self.sessions.append(new_session)
+        new_session = Session(  session_id,
+                                session_time,
+                                session_capacity_min,
+                                session_capacity_max, 
+                                waiting_time, 
+                                model_name,
+                                model_spec,
+                                fl_rounds)
+        
+        self.sessions[session_id] = new_session
+        
+
+    def join_session(self,
+                     session_id,
+                     client_id,
+                     model_name,
+                     model_spec,
+                     memcap,
+                     mdatasize,
+                     pspeed):
+        
+        if(session_id in self.sessions):
+            if(self.sessions[session_id].model_name == model_name):
+                if(self.sessions[session_id].model_spec == model_spec):
+                    new_client = Client(client_id,
+                                        memcap,
+                                        mdatasize,
+                                        pspeed)
+                    self.sessions[session_id].add_client(new_client)
+                     #TODO: Check if maximum capacity is hit, or waiting time is over and minimum capacity is hit, then start clusterizing the session.
+                     
+
 
     def plot_accloss(self,acc,loss, rounds = 0, init = False):
       
