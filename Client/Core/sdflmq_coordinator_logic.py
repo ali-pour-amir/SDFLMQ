@@ -83,7 +83,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
     def __update_rounds(self, session_id):
         #TODO: check if round counter equal to max round of session
         #TODO: if yes, terminate session, and send ack to clients "session_terminated"
-        #TODO: if not, check if first round, 
+        #TODO: if not, update roles
         return
     
     def __round_complete(self, session_id, client_id):
