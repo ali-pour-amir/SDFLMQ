@@ -43,171 +43,33 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                     start_loop)
         
         self.client.subscribe(self.CiTCoT)
-
-
-
-    def parse_client_stats(self , client_id, statsstr) : 
+    
+    def __parse_client_stats(self , client_id,session_id, statsstr) : 
 
         stats = json.loads(statsstr)
         round_status = self.active_session['rounds'][self.active_session['current_round']]['status'] 
 
         if((round_status != 'pending') and (round_status != 'complete')):
             if(client_id in self.client_stats):
-                self.client_stats[client_id]['cpu_count'].append(stats['cpu_count'])
-                # self.client_stats[client_id]['disk_usage'].append(stats['disk_usage'])
+                self.client_stats[client_id]['bandwidth'].append(stats['bandwidth'])
                 self.client_stats[client_id]['cpu_frequency'].append(stats['cpu_frequency'])
-                # self.client_stats[client_id]['cpu_stats'].append(stats['cpu_stats'])
-                # self.client_stats[client_id]['net_stats'].append(stats['net_stats'])
-                self.client_stats[client_id]['ram_usage'].append(stats['ram_usage'])
-                # self.client_stats[client_id]['net_counters'].append(stats['net_counters'])
-
+                self.client_stats[client_id]['available_ram'].append(stats['available_ram'])
 
             else:
                 self.client_stats[client_id] = {}
-                self.client_stats[client_id]['cpu_count']      =  [stats['cpu_count']]
-                # self.client_stats[client_id]['disk_usage']     =  [stats['disk_usage']]
+                self.client_stats[client_id]['bandwidth']      =  [stats['bandwidth']]
                 self.client_stats[client_id]['cpu_frequency']  =  [stats['cpu_frequency']]
-                # self.client_stats[client_id]['cpu_stats']      =  [stats['cpu_stats']]
-                # self.client_stats[client_id]['net_stats']      =  [stats['net_stats']]
-                self.client_stats[client_id]['ram_usage']      =  [stats['ram_usage']]
-                # self.client_stats[client_id]['net_counters']   =  [stats['net_counters']]
-                
-            if((client_id in self.mem_usage_track) == False):
-                self.mem_usage_track[client_id] = []
-                self.total_mem_usage[client_id] = []
-
-            if(client_id in self.round_clients):
-                print("already signed for the round.")
-            else:
-                self.round_clients.append(client_id)
-                self.client_parse_count += 1
-                print("newly participated clients for the round: " + str(self.client_parse_count))
-            
-
-            if(self.client_parse_count == int(self.active_session["num_clients"])):
-                print("all clients participated. Setting up aggregator and initiating training.")
-                self.broadcast_trainers()
-                self.assign_aggregator(assignment_criteria="random")
-                self.initiate_training()
-                self.active_session['rounds'][self.active_session['current_round']]['status'] = 'pending'
-                
-    def broadcast_trainers(self):
-        trainers_list = json.dumps(self.round_clients)
-        print("Elected clients for training: " + trainers_list)
-        self.publish(self.CoTClT, "update_status"," -ids " + trainers_list)
-        self.round_clients = []
-        self.client_parse_count = 0
-
-    def assign_aggregator(self,assignment_criteria):   
-        client0 = next(iter(self.client_stats))
-
-        if(assignment_criteria == "max_mem"):
-            min_ram_usage = self.client_stats[client0]['ram_usage'][len(self.client_stats[client0]['ram_usage'])-1]
-            for client in self.client_stats:
-                client_ram_usage = self.client_stats[client]['ram_usage'][len(self.client_stats[client]['ram_usage'])-1]
-                if(client_ram_usage < min_ram_usage):
-                    min_ram_usage = client_ram_usage
-                    client0 = client
-            print("Elected client " + client0 + " due to minimum ram usage of " + str(min_ram_usage))
-        elif(assignment_criteria == "random"):
-            randc = random.randint(0,len(self.client_stats)-1)
-            print(len(self.client_stats))
-            print(randc)
-            
-            client0 = list(self.client_stats.keys())[randc]
-
-            print("Randomly elected client " + client0 + ".")
-
-        self.active_session['rounds'][self.active_session['current_round']]['aggregator'] = client0
-        self.publish(self.CoTClT,"set_aggregator"," -id " + client0)
-
-    def initiate_training(self):
-        self.publish(self.CoTClT,"client_update"," -num_epochs " + str(self.active_session['num_epochs']) + " -batch_size " + str(self.active_session['batch_size']) )
-    
+                self.client_stats[client_id]['available_ram']      =  [stats['available_ram']]
+                      
+    def __broadcast_roles(self,session_id):
+        role_dic = json.dumps(self.session_manager.get_session[session_id].role_dictionary)
+        self.publish(session_id, "get_session_roles"," -roles " + role_dic)
+        
     def order_client_resources(self,model_name, dataset_name) : 
         self.publish(self.CoTClT , "echo_resources" , " -model_name " + model_name + " -dataset_name " + dataset_name)
-    
-    def plot_accloss(self,acc,loss, rounds = 0, init = False):
-      
-        if(init == True): 
-            self.plot_fig, (self.plot_ax_accloss, self.plot_ax_mem,self.plot_ax_total_mem) = plt.subplots(3,1,layout='constrained') # fig : figure object, ax : Axes object
-            self.plot_ax_accloss.set_xlabel('round')
-            self.plot_ax_accloss.set_xlim((0,rounds))
-            
-            self.plot_ax_accloss.set_ylim((0.0,1.0))
-            self.plot_ax_accloss.set_ylabel('prediction accuracy')
-
-            self.plot_ax_mem.set_xlim((0,rounds))
-            self.plot_ax_mem.set_ylabel('ram usage (bytes)')
-            self.plot_ax_mem.set_xlabel('round')
-
-            self.plot_ax_total_mem.set_xlim((0,rounds))
-            self.plot_ax_total_mem.set_ylabel('total ram usage (bytes)')
-            self.plot_ax_total_mem.set_xlabel('round')
-            
-            self.plt_step = []
-            self.plt_acc = []
-            self.plt_loss = []
-        else:
-            self.plt_step.append(len(self.plt_step))
-            self.plt_acc.append(float(acc))
-            self.plt_loss.append(float(loss))
-           
-        # plt.plot(self.plt_step,self.plt_loss,color='red')
-
-        self.plot_ax_accloss.plot(self.plt_step,self.plt_loss,color='red')
-        self.plot_ax_accloss.plot(self.plt_step,self.plt_acc,color='blue')
         
-        for cl in self.mem_usage_track:
-            self.plot_ax_mem.plot(self.plt_step,self.mem_usage_track[cl])
-
-        for cl in self.total_mem_usage:
-            self.plot_ax_total_mem.plot(self.plt_step,self.total_mem_usage[cl])
-       
-        plt.pause(0.1)
-        
-        # plt.show()
-
-    def create_new_session(self,session,dataset,model,num_clients, num_epochs, batch_size, rounds):
-        new_session = {}
-        new_session['session_name'] = session
-        new_session['dataset_name'] = dataset
-        new_session['model_name'] = model
-        new_session['num_clients'] = int(num_clients)
-        new_session['num_rounds'] = int(rounds)
-        new_session['current_round'] = 0
-        round = {'participants' : [],
-                 'status': '', 
-                 'cluster_topology':'',
-                 'acc':'',
-                 'loss':''}
-        
-        new_session['rounds'] = [round]
-
-        self.sessions.append(new_session)
-        
-
     def Initiate_FL(self):
         self.order_client_resources(self.active_session['model_name'],self.active_session['dataset_name'])
-
-    def Prepare_Aggregation(self):
-        print("Asking aggregator to perform aggregation")
-        self.publish(self.CoTClT,"fed_average","")
-         
-    def update_rounds(self):
-        
-        self.active_session['rounds'][self.active_session['current_round']]['status'] = 'complete'
-        
-        if(self.active_session['current_round'] < self.active_session['num_rounds']-1):
-            self.active_session['current_round'] += 1
-            new_round = {'participants' : [], 'status': '', 'aggregator':''}
-            self.active_session['rounds'].append(new_round)
-            self.order_client_resources(self.active_session['model_name'],self.active_session['dataset_name'])
-        else:
-            print("Max number of trainings reached. Session is complete. Saving logs")
-            self.save_logs()
-            if(self.plot_stats):
-                plt.show()
 
     def save_logs(self):
         session_file = open(self.root_directory + "/"+self.active_session['session_name']+".txt",'w')
@@ -215,29 +77,36 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         json.dump(self.active_session,session_file)
         json.dump(self.client_stats,client_stats_file)
 
-    def check_participant(self,client_id):
-        if(client_id in self.active_session['rounds'][self.active_session['current_round']]['participants']):
-            print("client " + client_id + " has already acknowledged training is complete.")
-        else:
-            self.active_session['rounds'][self.active_session['current_round']]['participants'].append(client_id)
-            max_participants_th = self.active_session['num_clients']
-            print("Aggregator is " + self.active_session['rounds'][self.active_session['current_round']]['aggregator'])
-            print("Participants are " + str(self.active_session['rounds'][self.active_session['current_round']]['participants']))
-            # if( self.active_session['rounds'][self.active_session['current_round']]['aggregator'] in  self.active_session['rounds'][self.active_session['current_round']]['participants']):
-            #     max_participants_th -= 1
-            if(len(self.active_session['rounds'][self.active_session['current_round']]['participants']) == max_participants_th):
-                print("Max number of participating clients reached. \nNumber of clients: " + str(self.active_session['num_clients']))
-                for c in self.active_session['rounds'][self.active_session['current_round']]['participants']:
-                    self.publish(self.CoTClT,"send_local", " -id " + c)
-                print("Asked clients to send their local model to the aggregator.")
-        
     def request_client_stats(self,session_id):
         self.publish(topic=session_id,func_name="report_client_stats",msg="")
 
+    def __update_rounds(self, session_id):
+        #TODO: check if round counter equal to max round of session
+        #TODO: if yes, terminate session, and send ack to clients "session_terminated"
+        #TODO: if not, check if first round, 
+        return
+    
+    def __round_complete(self, session_id, client_id):
+        #TODO: if client id matching with root aggregator
+        #TODO: if session id matching
+        #TODO: increase round step
+        #TODO: send ack to clients "round_complete"
+        #TODO: call update rounds
+        return
+    
+    def __update_session(self,session_id):
+        #TODO: Check session Time
+        #TODO: Check session waiting time
+        #TODO: Check list of clients, in relation to min capacity and max capacity
+        #TODO: if max cap is met, or if min cap is met and waiting time over, session ready
+        #TODO: if session ready, clusterize session, and send ack to clients "session ready"
+        #TODO: if min cap not met, and session time is over, terminate session, and send ack to clients
 
-    def clusterize_session(self,session_id):
+        return
+    
+    def __clusterize_session(self,session_id):
 
-        session = self.session_manager.sessions[session_id]
+        session = self.session_manager.get_session[session_id]
 
         #1) Create a topology for the session meaning how many agg units are there, and how many nodes are under each agg node. 
         # This set the role_dictionary, and also creates a blank role_vector array.
@@ -250,14 +119,77 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         clusters = self.clustering_engine.form_clusters(session)
         session.set_clusters(clusters)
 
-    def update_roles(self,session_id):
-        session = self.session_manager.sessions[session_id]
+    def __update_roles(self,session_id):
+        session = self.session_manager.get_session[session_id]
         
         #1) Returns a new role_vector based on the optimizer's suggestion
         #2) Updates the roles according to the new_role_Vector. This only looks into the nodes, and does not need to travers into clusters.
         new_role_vec = self.load_balancer.optimize_roles(session)
+    
+    def __check_roles(self,session_id,client_id,role):
+        #TODO: set new role for the client as ready
+        #TODO: check all roles, if all are ready, then send ack to clients "round_ready"
+        return
 
+    def __new_fl_session_request(self,
+                                    session_id,
+                                    session_time,
+                                    session_capacity_min,
+                                    session_capacity_max, 
+                                    waiting_time, 
+                                    model_name,
+                                    fl_rounds,
+                                    client_id,
+                                    model_spec,
+                                    memcap,
+                                    mdatasize,
+                                    pspeed):
         
+        ack = self.session_manager.create_new_session(session_id,
+                                                session_time,
+                                                session_capacity_min,
+                                                session_capacity_max, 
+                                                waiting_time, 
+                                                model_name,
+                                                model_spec,
+                                                fl_rounds)
+        
+        if(ack == 0):
+            self.publish(topic=self.topics.CoTClT + client_id,func_name="session_ack",msg="new_s")
+
+        ack2 = self.session_manager.join_session(session_id,
+                                            client_id,
+                                            model_name,
+                                            model_spec,
+                                            fl_rounds,
+                                            memcap,
+                                            mdatasize,
+                                            pspeed)
+        if(ack2 == 0):
+            self.publish(topic=self.topics.CoTClT + client_id,func_name="session_ack",msg="join_s")
+        
+    def __join_fl_session_request(self,
+                                    session_id,
+                                    client_id,
+                                    model_name,
+                                    model_spec,
+                                    fl_rounds,
+                                    memcap,
+                                    mdatasize,
+                                    pspeed):
+        
+        ack = self.session_manager.join_session(session_id,
+                                            client_id,
+                                            model_name,
+                                            model_spec,
+                                            fl_rounds,
+                                            memcap,
+                                            mdatasize,
+                                            pspeed)
+        
+        if(ack == 0):
+            self.publish(topic=self.topics.CoTClT + client_id,func_name="session_ack",msg="join_s")
+            self.__update_session(session_id)
 
     def __execute_on_msg(self, header_parts, body) -> None :
         super().__execute_on_msg(header_parts, body) 
@@ -343,56 +275,3 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
             print("Global model propagated. Completing round.")
             self.update_rounds()
 
-    def __new_fl_session_request(self,
-                                    session_id,
-                                    session_time,
-                                    session_capacity_min,
-                                    session_capacity_max, 
-                                    waiting_time, 
-                                    model_name,
-                                    fl_rounds,
-                                    client_id,
-                                    model_spec,
-                                    memcap,
-                                    mdatasize,
-                                    pspeed):
-        
-        self.session_manager.create_new_session(session_id,
-                                                session_time,
-                                                session_capacity_min,
-                                                session_capacity_max, 
-                                                waiting_time, 
-                                                model_name,
-                                                model_spec,
-                                                fl_rounds)
-        
-        self.session_manager.join_session(session_id,
-                                            client_id,
-                                            model_name,
-                                            model_spec,
-                                            fl_rounds,
-                                            memcap,
-                                            mdatasize,
-                                            pspeed)
-        
-
-    def __join_fl_session_request(self,
-                                    session_id,
-                                    client_id,
-                                    model_name,
-                                    model_spec,
-                                    fl_rounds,
-                                    memcap,
-                                    mdatasize,
-                                    pspeed):
-        
-        self.session_manager.join_session(session_id,
-                                            client_id,
-                                            model_name,
-                                            model_spec,
-                                            fl_rounds,
-                                            memcap,
-                                            mdatasize,
-                                            pspeed)
-
-    

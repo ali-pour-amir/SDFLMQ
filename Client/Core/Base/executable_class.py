@@ -31,10 +31,7 @@ class PubSub_Base_Executable:
                      myID,
                      broker_ip,
                      broker_port,
-                     #introduction_topic,
-                     #controller_executable_topic,
-                     #controller_echo_topic,
-                     start_loop):
+                     start_loop = False):
 
             topics = MQTTFC_Base()
 
@@ -108,9 +105,7 @@ class PubSub_Base_Executable:
                 self.echo_msg(body)
             
             if header_parts[2] == 'publish_executables':
-                self.publish_executables()    
-                
-            
+                self.publish_executables()              
        
         def on_connect(self,client,userdata, flags, rc):
             print("Connected with result code " + str(rc))
@@ -220,8 +215,7 @@ class PubSub_Base_Executable:
                         self.echo_msg("Client " + self.id + " maximum number of restoration reached. Killing instance. Recommending re-running the code.")
                         return -1
                     
-        
-        def oneshot_loop(self):
+        def oneshot_loop(self,callback = None,*args):
             
             restore_count = 0 # Restoration Cap is 10
             while(restore_count < 10):
@@ -229,6 +223,8 @@ class PubSub_Base_Executable:
                 try:
                     print("Client one-shot loop started ...")
                     self.client.loop()
+                    if(callback != None):
+                        callback(*args)
                     print("Client one-shot loop ended ...")
                     return 0
                 except OSError:
@@ -240,7 +236,6 @@ class PubSub_Base_Executable:
                    
             self.echo_msg("Client " + self.id + " maximum number of restoration reached. Killing instance. Recommending re-running the code.")
             return -1
-        
         
         def parallel_loop(self):
             

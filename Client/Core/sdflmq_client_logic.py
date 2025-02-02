@@ -27,10 +27,11 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
                  start_loop : bool) -> None : 
         
         topics = SDFLMQ_Topics()
-        self.CoTClT = topics.CoTClT
+      
         self.ClTCoT = topics.ClTCoT
-        self.PSTCoT = topics.PSTCoT
-        self.PSTCliIDT = topics.PSTCliIDT
+        # self.PSTCoT = topics.PSTCoT
+        self.CoTClT = topics.CoTClT + self.id
+        self.PSTCliIDT = topics.PSTCliIDT + self.id
 
         os.system('setterm -background yellow -foreground black')
         os.system('clear')
@@ -60,9 +61,7 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         self.executables.extend(self.aggregator.executables)
         self.client.subscribe(self.CoTClT)
         self.client.subscribe(self.PSTCoT)
-        self.client.subscribe(self.PSTCliIDT + self.id)
-
-
+        self.client.subscribe(self.PSTCliIDT)
 
     def __execute_on_msg (self, header_parts, body): 
         
@@ -113,7 +112,6 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         # except:
         #     print("Something in the command message was not right! Try again.")
 
-
     def __receive_local(self,id, params):
         model_params = json.loads(params)
         self.aggregator.accumulate_params(model_params)
@@ -129,7 +127,7 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         self.publish(self.aggregator.current_agg_topic_s,"receive_local"," -id " + self.id + " -model_params " + str(model_params))
         print("Model parameters published to aggregator.")
     
-    def __propagate_global(self): #TODO: Move this to Parameter Server Logic
+    def __propagate_global(self): 
         weights_and_biases = {}
         for name, param in self.client_logic.logic_model.named_parameters():
             weights_and_biases[name] = param.data.tolist()
@@ -139,19 +137,15 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         print("Global model parameters published to clients. Informing Coordinator.")
         self.publish(self.ClTCoT,"global_model_propagated","")
     
-    
     def __report_resources(self,res_msg) -> None : 
         self.publish(topic=self.ClTCoT,func_name="parse_client_stats",msg=res_msg)
     
-
-
-
-
-
-
-
-
-
+    def __reset_role(self,role):
+        return
+    
+    def __set_role(self,role):
+        return
+    
     def __session_ack(self, ack_type):
         
         if(ack_type == "new_s"):
@@ -164,7 +158,18 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
             return
         if(ack_type == "ready_s"):
             return
+        if(ack_type == "terminate_s"):
+            return
+    
+    def __round_ack(self, ack_type):
         
+        if(ack_type == "round_ready"):
+            return
+        if(ack_type == "round_complete"):
+            return
+       
+    def __get_session_roles(self,roles):
+        return
 
     def create_fl_session(self, 
                             session_id,
@@ -196,7 +201,6 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
                                                             " mdatasize " + str(modelsize) + 
                                                             " pspeed " + str(processing_speed))
 
-    
     def join_fl_session(self, session_id, rounds, role):
 
         self.publish(self.ClTCoT,"join_fl_session_request", " -c_id " + str(self.id) + 
@@ -209,7 +213,6 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         self.publish(self.ClTCoT,"leave_fl_session_request", " -c_id " + str(self.id) + 
                                                             " -s_id " + str(session_id))
     
-    
     def delete_session(self, session_id):
         self.publish(self.ClTCoT,"delete_fl_session_request", " -c_id " + str(self.id) + 
                                                             " -s_id " + str(session_id))
@@ -219,10 +222,3 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         self.publish(self.ClTCoT,"leave_fl_session_request", " -c_id " + str(self.id) + 
                                                             " -s_id " + str(session_id))
     
-    
-    # def _get_header_body(self , msg) -> list :
-    #     header_body = str(msg.payload.decode()).split('::')
-    #     print("MESSAGE Header: " + header_body[0])
-
-    #     header_parts = header_body[0].split('|')
-    #     return header_parts

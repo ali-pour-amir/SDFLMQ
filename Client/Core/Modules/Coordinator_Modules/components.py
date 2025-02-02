@@ -1,6 +1,12 @@
 _ROLE_AGGREGATOR = '10'
 _ROLE_TRAINER = '01'
 _ROLE_TRAINER_AGGREGATOR = '11'
+
+
+_SESSION_TIMEOUT = '00'
+_SESSION_TERMINATED = '01'
+_SESSION_ALIVE = '10'
+
 import datetime
 
 class Client :
@@ -62,7 +68,8 @@ class Session():
         self.client_list = []
         self.nodes = []
         self.clusters = []
-
+        self.role_vector = []
+        self.role_dictionary = {}
         self.session_id = session_id
         self.session_time = session_time
         self.session_capacity_min = session_capacity_min
@@ -72,7 +79,7 @@ class Session():
         self.model_stat = model_spec
         self.num_rounds = fl_rounds
         self.current_round_index = 0
-    
+        self.session_status = _SESSION_ALIVE
         round = {'participants' : [],
                 'status': '', 
                 'acc':'',
@@ -85,7 +92,7 @@ class Session():
         self.client_list.append(client)
 
     def set_role_dictionary(self,role_dictionary):
-        self.set_role_dictionary = role_dictionary
+        self.role_dictionary = role_dictionary
 
     def set_roles(self,role_vector):
         self.role_vector = role_vector

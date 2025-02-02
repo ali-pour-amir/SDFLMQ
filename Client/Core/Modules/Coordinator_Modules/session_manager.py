@@ -6,9 +6,16 @@ from Core.Modules.Coordinator_Modules.components import Client
 
 class Session_Manager():
     def __init__(self):
-        self.sessions = {}
+        self.__sessions = {}
         
-        
+    
+    def update_session(self,session_id):
+        return
+
+    def get_session(self,session_id):
+        self.update_session(session_id)
+        return self.__sessions[session_id]
+    
     def create_new_session(self,
                             session_id,
                             session_time,
@@ -18,18 +25,21 @@ class Session_Manager():
                             model_name,
                             model_spec,
                             fl_rounds):
-
-        new_session = Session(  session_id,
-                                session_time,
-                                session_capacity_min,
-                                session_capacity_max, 
-                                waiting_time, 
-                                model_name,
-                                model_spec,
-                                fl_rounds)
-        
-        self.sessions[session_id] = new_session
-        
+        try:
+            new_session = Session(  session_id,
+                                    session_time,
+                                    session_capacity_min,
+                                    session_capacity_max, 
+                                    waiting_time, 
+                                    model_name,
+                                    model_spec,
+                                    fl_rounds)
+            
+            self.sessions[session_id] = new_session
+            return 0
+        except:
+            print("Error occured in new session generation.")
+            return -1
 
     def join_session(self,
                      session_id,
@@ -41,19 +51,31 @@ class Session_Manager():
                      memcap,
                      mdatasize,
                      pspeed):
-        
-        if(session_id in self.sessions):
-            if(self.sessions[session_id].model_name == model_name):
-                if(self.sessions[session_id].model_spec == model_spec):
-                    new_client = Client(client_id,
-                                        client_role,
-                                        fl_rounds,
-                                        memcap,
-                                        mdatasize,
-                                        pspeed)
-                    self.sessions[session_id].add_client(new_client)
-                     #TODO: Check if maximum capacity is hit, or waiting time is over and minimum capacity is hit, then start clusterizing the session.
-
+        try:
+            if(session_id in self.sessions):
+                if(self.sessions[session_id].model_name == model_name):
+                    if(self.sessions[session_id].model_spec == model_spec):
+                        new_client = Client(client_id,
+                                            client_role,
+                                            fl_rounds,
+                                            memcap,
+                                            mdatasize,
+                                            pspeed)
+                        self.sessions[session_id].add_client(new_client)
+                        #TODO: Check if maximum capacity is hit, or waiting time is over and minimum capacity is hit, then start clusterizing the session.
+                        return 0
+                    else:
+                        print("model spec does not match")
+                        return -1
+                else:
+                    print("model name does not match")
+                    return -1
+            else:
+                print("session id does not excist")
+                return -1
+        except:
+            print("error occured in joining client to session.")
+            return -1
 
 
     def plot_accloss(self,acc,loss, rounds = 0, init = False):

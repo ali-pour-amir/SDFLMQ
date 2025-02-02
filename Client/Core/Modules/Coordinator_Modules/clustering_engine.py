@@ -6,8 +6,7 @@ class Clustering_Engine():
     def __init__(self):
         return
 
-
-
+    
     def create_topology(self,session): #incorporate 30,70 or 20,80 or ...
         session.role_vector = []
         session.role_dictionary = {}
