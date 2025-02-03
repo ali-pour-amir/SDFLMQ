@@ -1,4 +1,7 @@
 import numpy as np
+import datetime
+import Core.Modeules.Coordinator_Modules.components
+
 from Core.Modules.Coordinator_Modules.components import Cluster
 from Core.Modules.Coordinator_Modules.components import Cluster_Node
 from Core.Modules.Coordinator_Modules.components import Session
@@ -7,11 +10,23 @@ from Core.Modules.Coordinator_Modules.components import Client
 class Session_Manager():
     def __init__(self):
         self.__sessions = {}
-        
     
+    def All_Nodes_Ready(self,session_id):
+        for n in self.sessions[session_id].nodes:
+            if(n.is_elected):
+                if(n.status == components._NODE_PENDING):
+                    return False
+        return True
+   
     def update_session(self,session_id):
-        return
-
+        if(self.__sessions[session_id].session_creation_time + #Check session Time
+           self.__sessions[session_id].session_time > datetime.datetime.now()):
+            self.__sessions[session_id].session_status = components._SESSION_TIMEOUT
+            print("Session with session_id " + session_id + " reached timeout, and no longer alive")
+        if((len(self.__sessions[session_id].client_list) >= self.__sessions[session_id].session_capacity_min)): #Check list of clients, in relation to min capacity and max capacity
+            self.__sessions[session_id].session_status = components._SESSION_ACTIVE  #if greater than min cap is met then session ready
+            print("Session ready")
+            
     def get_session(self,session_id):
         self.update_session(session_id)
         return self.__sessions[session_id]
@@ -62,7 +77,6 @@ class Session_Manager():
                                             mdatasize,
                                             pspeed)
                         self.sessions[session_id].add_client(new_client)
-                        #TODO: Check if maximum capacity is hit, or waiting time is over and minimum capacity is hit, then start clusterizing the session.
                         return 0
                     else:
                         print("model spec does not match")
@@ -76,7 +90,6 @@ class Session_Manager():
         except:
             print("error occured in joining client to session.")
             return -1
-
 
     def plot_accloss(self,acc,loss, rounds = 0, init = False):
       

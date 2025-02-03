@@ -1,5 +1,6 @@
 from Core.Base.executable_class import PubSub_Base_Executable
 from Core.Base.topics import SDFLMQ_Topics
+import Core.Modeules.Coordinator_Modules.components as components
 from Core.Modules.Coordinator_Modules.session_manager import Session_Manager
 from Core.Modules.Coordinator_Modules.clustering_engine import Clustering_Engine
 from Core.Modules.Coordinator_Modules.load_balancer import Load_Balancer
@@ -80,57 +81,49 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
     def request_client_stats(self,session_id):
         self.publish(topic=session_id,func_name="report_client_stats",msg="")
 
-    def __update_rounds(self, session_id):
-        #TODO: check if round counter equal to max round of session
-        #TODO: if yes, terminate session, and send ack to clients "session_terminated"
-        #TODO: if not, update roles
-        return
-    
     def __round_complete(self, session_id, client_id):
-        #TODO: if client id matching with root aggregator
-        #TODO: if session id matching
-        #TODO: increase round step
-        #TODO: send ack to clients "round_complete"
-        #TODO: call update rounds
-        return
-    
-    def __update_session(self,session_id):
-        #TODO: Check session Time
-        #TODO: Check session waiting time
-        #TODO: Check list of clients, in relation to min capacity and max capacity
-        #TODO: if max cap is met, or if min cap is met and waiting time over, session ready
-        #TODO: if session ready, clusterize session, and send ack to clients "session ready"
-        #TODO: if min cap not met, and session time is over, terminate session, and send ack to clients
+        if(client_id == self.session_manager.get_session(session_id).get_root_node().id): #If client id matching with root aggregator and if session id matching
+            self.session_manager.get_session(session_id).complete_round()#Increase round step
+            self.publish(topic=session_id,func_name="round_ack",msg="round_complete")#Send ack to clients "round_complete"
+                
+        if(self.session_manager.get_session(session_id).session_status == components._SESSION_TERMINATED):  #On get_session it is checked if round counter equal to max round of session.
+            self.publish(topic=session_id,func_name="session_ack",msg="terminate_s")        #If yes, terminate session, and send ack to clients "session_terminated"
+        elif(self.session_manager.get_session(session_id).session_status == components._SESSION_ACTIVE):#If not, and session is still active then:
+            self.session_manager.get_session(session_id).new_round()#Set new round
+            self.__update_roles(session_id)#Update roles
+            
+    def __check_session_status(self,session_id):
+        if(self.session_manager.get_session(session_id).session_status == components._SESSION_READY):#if session ready, clusterize session, and send ack to clients "session ready"
+            self.__clusterize_session(session_id)
+            self.publish(topic=session_id,func_name="session_ack",msg="active_s")
+        elif(self.session_manager.get_session(session_id).session_status == components._SESSION_TIMEOUT):#if min cap not met, and session time is over, terminate session, and send ack to clients
+              self.publish(topic=session_id,func_name="session_ack",msg="terminate_s")
 
-        return
-    
     def __clusterize_session(self,session_id):
-
         session = self.session_manager.get_session[session_id]
-
         #1) Create a topology for the session meaning how many agg units are there, and how many nodes are under each agg node. 
         # This set the role_dictionary, and also creates a blank role_vector array.
         [role_vec, role_dic] = self.clustering_engine.create_topology(session)
-        
         #2) Associate clients to nodes. This will fill the role_vector array with client ids.
         new_role_vec = self.load_balancer.initialize_roles(session)
-
         #3) Forms Clusters and also puts Nodes (not clients) into designated Clusters.
         clusters = self.clustering_engine.form_clusters(session)
         session.set_clusters(clusters)
 
+        self.__broadcast_roles(session_id)
+
     def __update_roles(self,session_id):
         session = self.session_manager.get_session[session_id]
-        
         #1) Returns a new role_vector based on the optimizer's suggestion
         #2) Updates the roles according to the new_role_Vector. This only looks into the nodes, and does not need to travers into clusters.
         new_role_vec = self.load_balancer.optimize_roles(session)
     
-    def __check_roles(self,session_id,client_id,role):
-        #TODO: set new role for the client as ready
-        #TODO: check all roles, if all are ready, then send ack to clients "round_ready"
-        return
-
+    def __confirm_role(self,session_id,client_id,role):
+        ack = self.Session_Manager.get_session(session_id).confirm_role(role,client_id) #Set new role for the client as ready 
+        if(ack == 0):
+            if(self.session_manager.All_Nodes_Ready(session_id)):#Check all roles, if all are ready, then send ack to clients "round_ready"
+                self.publish(topic=session_id,func_name="round_ack",msg="round_ready")
+            
     def __new_fl_session_request(self,
                                     session_id,
                                     session_time,
@@ -188,9 +181,9 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                                             pspeed)
         
         if(ack == 0):
+            self.__check_session_status(session_id)
             self.publish(topic=self.topics.CoTClT + client_id,func_name="session_ack",msg="join_s")
-            self.__update_session(session_id)
-
+            
     def __execute_on_msg(self, header_parts, body) -> None :
         super().__execute_on_msg(header_parts, body) 
         # header_parts = self._get_header_body(msg)

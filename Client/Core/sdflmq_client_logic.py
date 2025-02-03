@@ -140,38 +140,41 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
     def __report_resources(self,res_msg) -> None : 
         self.publish(topic=self.ClTCoT,func_name="parse_client_stats",msg=res_msg)
     
-    def __reset_role(self,role):
+    def __reset_role(self,role):#TODO:complete logic
+        
+        #TODO: send confirm role to coordinator
         return
     
-    def __set_role(self,role):
+    def __set_role(self,role):#TODO:complete logic
+
+        #TODO: send confirm role to coordinator
         return
     
     def __session_ack(self, ack_type):
-        
-        if(ack_type == "new_s"):
+        if(ack_type == "new_s"):#TODO:complete logic
             return
-        if(ack_type == "join_s"):
+        if(ack_type == "join_s"):#TODO:complete logic
             return
-        if(ack_type == "leave_s"):
+        if(ack_type == "leave_s"):#TODO:complete logic
             return
-        if(ack_type == "delete_s"):
+        if(ack_type == "delete_s"):#TODO:complete logic
             return
-        if(ack_type == "ready_s"):
+        if(ack_type == "active_s"):#TODO:complete logic
             return
-        if(ack_type == "terminate_s"):
+        if(ack_type == "terminate_s"):#TODO:complete logic
             return
     
-    def __round_ack(self, ack_type):
-        
-        if(ack_type == "round_ready"):
+    def __round_ack(self, ack_type): 
+        if(ack_type == "round_ready"):#TODO:complete logic
             return
-        if(ack_type == "round_complete"):
+        if(ack_type == "round_complete"):#TODO:complete logic
             return
        
     def __get_session_roles(self,roles):
+        #TODO:complete logic
         return
 
-    def create_fl_session(self, 
+    def create_fl_session(self, #TODO:complete logic
                             session_id,
                             session_time,
                             session_capacity_min,
@@ -201,23 +204,23 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
                                                             " mdatasize " + str(modelsize) + 
                                                             " pspeed " + str(processing_speed))
 
-    def join_fl_session(self, session_id, rounds, role):
+    def join_fl_session(self, session_id, rounds, role):#TODO:complete logic and input parameters
 
         self.publish(self.ClTCoT,"join_fl_session_request", " -c_id " + str(self.id) + 
                                                             " -s_id " + str(session_id) + 
                                                             " -s_rounds " + str(rounds) +
                                                             " -c_role " + str(role))
     
-    def leave_session(self, session_id):
+    def leave_session(self, session_id):#TODO:complete logic
         
         self.publish(self.ClTCoT,"leave_fl_session_request", " -c_id " + str(self.id) + 
                                                             " -s_id " + str(session_id))
     
-    def delete_session(self, session_id):
+    def delete_session(self, session_id):#TODO:complete logic
         self.publish(self.ClTCoT,"delete_fl_session_request", " -c_id " + str(self.id) + 
                                                             " -s_id " + str(session_id))
     
-    def initiate_session(self, session_id):
+    def initiate_session(self, session_id):#TODO:complete logic
         
         self.publish(self.ClTCoT,"leave_fl_session_request", " -c_id " + str(self.id) + 
                                                             " -s_id " + str(session_id))
