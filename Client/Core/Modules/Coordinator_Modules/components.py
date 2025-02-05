@@ -30,6 +30,7 @@ class Client :
         self.memcap = memcap 
         self.pspeed = pspeed
         self.mdatasize = mdatasize
+        self.is_settled = False
 
 class Cluster_Node():
     def __init__(self, 
@@ -45,24 +46,16 @@ class Cluster_Node():
 class Cluster():
 
     def __init__(self,
-                 cluster_id,
-                 cluster_head):
+                 cluster_id):
         self.id = cluster_id
-        self.cluster_head = cluster_head
+        self.cluster_head = None
         self.cluster_nodes = []
 
-    def add_node(self,
-                 node_name,
-                 client,
-                 role):
-        new_node = Cluster_Node(node_name,role,client)
+    def add_node(self,node):
+        self.cluster_head.append(node)
 
-        if(role == _ROLE_TRAINER_AGGREGATOR or 
-           role == _ROLE_AGGREGATOR):
-            self.cluster_head = new_node
-        else:
-            self.cluster_nodes.append(new_node)
-
+    def set_cluster_head(self,node):
+        self.cluster_head = node
 
 class Session():
     def __init__(self,
@@ -124,6 +117,7 @@ class Session():
             
     def add_client(self, client):
         self.client_list.append(client)
+       
 
     def set_role_dictionary(self,role_dictionary):
         self.role_dictionary = role_dictionary
@@ -154,14 +148,14 @@ class Session():
         #TODO: revert node.status in updated nodes to _NODE_PENDING
         #TODO: for nodes not allocated, check their is_elected is false
     
-    def set_clusters(self,init_clusters):
-        self.clusters = init_clusters
+    # def set_clusters(self,init_clusters):
+    #     self.clusters = init_clusters
 
     def update_clusters(self,new_role_dictionary):
         return
     
     def add_cluster(self,cluster):
-        return
+        self.cluster.append(cluster)
     
     def remove_cluster(self,cluster):
         return

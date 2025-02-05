@@ -1,6 +1,6 @@
 import numpy as np
 import datetime
-import Core.Modeules.Coordinator_Modules.components
+import Core.Modeules.Coordinator_Modules.components as components
 
 from Core.Modules.Coordinator_Modules.components import Cluster
 from Core.Modules.Coordinator_Modules.components import Cluster_Node
