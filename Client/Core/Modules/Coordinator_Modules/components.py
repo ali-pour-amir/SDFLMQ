@@ -30,7 +30,7 @@ class Client :
         self.memcap = memcap 
         self.pspeed = pspeed
         self.mdatasize = mdatasize
-        self.is_settled = False
+        self.is_placed = False
 
 class Cluster_Node():
     def __init__(self, 
@@ -113,25 +113,48 @@ class Session():
                         'completion_time':None,
                         'processing_time':None}
         self.rounds.append(new_round)
-            
-            
+                 
     def add_client(self, client):
         self.client_list.append(client)
        
-
     def set_role_dictionary(self,role_dictionary):
         self.role_dictionary = role_dictionary
 
     def set_roles(self,role_vector):
+        
+        #Travese the nodes and place the clients according to the role_vectors. 
+        #Place the remaining clients into training_only nodes.
+        #all nodes that are allocated should have a pending status, and is_elected = True
+        #set root node according to new_role_vector
+        #in case of not hitting max capacity, some nodes are unallocated. if so, their is_elected should remain False
+        
+        #FIRST: Assign clients to Nodes which their role is equal to the counting agg_roles (extracted from role_dictionary key items).
+        agg_roles = self.role_dictionary.keys()
+        for i,j in enumerate(role_vector):
+            for k in range(len(self.nodes)):
+                if(agg_roles[i] == self.nodes[k]):
+                    self.nodes[k].client = self.client_list[j]
+                    self.nodes[k].status = _NODE_PENDING
+                    self.client_list[j].is_placed = True
+                    break
+        
+        #SECOND: Traverse the list of clients, those that hasn't been placed yet, find a node in the list of nodes which has no clients 
+        #        and also has a role name starting with 't' indicating the node accepts trainer clients, and assigns the client to the node.
+        for l in range(self.client_list):
+            if(self.client_list[l].is_placed == False):
+                for m in range(len(self.nodes)):
+                    if(self.nodes[m].client == None):
+                        if(self.nodes[m].role[0] == 't'):
+                            self.nodes[m].client = self.client_list[l]
+                            self.nodes[m].status = _NODE_PENDING
+                            self.client_list[l].is_placed = True
+                            break
+                
         self.role_vector = role_vector
-        #TODO:Travese the nodes and place the clients according to the role_vectors. 
-        #TODO:Place the remaining clients into training_only nodes.
-        #TODO: all nodes that are allocated should have a pending status, and is_elected = True
-        #TODO: set root node according to new_role_vector
-        #TODO: in case of not hitting max capacity, some nodes are unallocated. if so, their is_elected should remain False
-    
+        
     def get_root_node(self,node):
         self.root_node = node
+    
     def set_root_node(self):
         return self.root_node
     
@@ -143,14 +166,45 @@ class Session():
 
     def update_roles(self,new_role_vector):
         old_role_vector = self.role_vector
-        self.role_vector = new_role_vector
-        #TODO: set root node according to new_role_vector
-        #TODO: revert node.status in updated nodes to _NODE_PENDING
-        #TODO: for nodes not allocated, check their is_elected is false
-    
-    # def set_clusters(self,init_clusters):
-    #     self.clusters = init_clusters
+        agg_roles = self.role_dictionary.keys()
+        
+        #FIRST: Traverse the new_role_vector and find the item(s) which differ compare to the old_role_vector.
+        #       Then, traverse the list of nodes, and extract the node which has been assigned the client which appears to be in the new role_vector element for the updating node.
+        #       After finding the node, set it's client to none, and break out of the for.
+        for i,j in enumerate(new_role_vector):
+            if(old_role_vector[i] != j):
+                for m in range(len(self.nodes)):
+                    if(self.nodes[m].client.id == self.client_list[j].id):
+                        self.nodes[m].client = None
+                        self.nodes[m].status = _NODE_PENDING
+                        break
+                #
+                # self.client_list[old_role_vector[i]].is_placed = False
 
+                #SECOND: Traverse the list of nodes and find the node whose role maches the counting updating role according the agg_roles set.
+                #        Then, first set its client free by setting it's is_placed atribute to false. Then assign the new client to the node, and set it to pending mode and set the newly placed client as placed.
+                for k in range(len(self.nodes)):
+                    if(agg_roles[i] == self.nodes[k].role):
+                        self.nodes[k].client.is_placed = False
+                        self.nodes[k].client = self.client_list[j]
+                        self.nodes[k].status = _NODE_PENDING
+                        self.client_list[j].is_placed = True
+        #THIRD: search the list of clients, and find those whose is_placed is false. When found one, search the list of nodes and find the first that has no client attached which also is trainer only, and assign the found client to it.
+        for l in range(self.client_list):
+            if(self.client_list[l].is_placed == False):
+                for m in range(len(self.nodes)):
+                    if(self.nodes[m].client == None):
+                        if(self.nodes[m].role[0] == 't'):
+                            self.nodes[m].client = self.client_list[l]
+                            self.nodes[m].status = _NODE_PENDING
+                            self.client_list[l].is_placed = True
+                            break
+                        
+        #set root node according to new_role_vector
+        #revert node.status in updated nodes to _NODE_PENDING
+        #for nodes not allocated, check their is_elected is false
+        self.role_vector = new_role_vector
+        
     def update_clusters(self,new_role_dictionary):
         return
     

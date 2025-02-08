@@ -103,12 +103,16 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         session = self.session_manager.get_session[session_id]
         #1) Create a topology for the session meaning how many agg units are there, and how many nodes are under each agg node. 
         # This set the role_dictionary, and also creates a blank role_vector array.
-        [role_vec, role_dic] = self.clustering_engine.create_topology(session)
+        self.clustering_engine.create_topology(session)
         #2) Associate clients to nodes. This will fill the role_vector array with client ids.
-        new_role_vec = self.load_balancer.initialize_roles(session)
+        self.load_balancer.initialize_roles(session)
         #3) Forms Clusters and also puts Nodes (not clients) into designated Clusters.
         clusters = self.clustering_engine.form_clusters(session)
         session.set_clusters(clusters)
+        #Inform Clients in nodes with NODE_PENDING status
+        for node in session.nodes:
+            if(node.status == components._NODE_PENDING):
+                self.publish(topic=self.topics.CoTClT + node.client.id,func_name="set_role",msg=node.role)
 
         self.__broadcast_roles(session_id)
 
@@ -116,14 +120,18 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         session = self.session_manager.get_session[session_id]
         #1) Returns a new role_vector based on the optimizer's suggestion
         #2) Updates the roles according to the new_role_Vector. This only looks into the nodes, and does not need to travers into clusters.
-        new_role_vec = self.load_balancer.optimize_roles(session)
+        self.load_balancer.optimize_roles(session)
+        #Inform Clients in nodes with NODE_PENDING status
+        for node in session.nodes:
+            if(node.status == components._NODE_PENDING):
+                self.publish(topic=self.topics.CoTClT + node.client.id,func_name="reset_role",msg=node.role)
     
     def __confirm_role(self,session_id,client_id,role):
         ack = self.Session_Manager.get_session(session_id).confirm_role(role,client_id) #Set new role for the client as ready 
         if(ack == 0):
             if(self.session_manager.All_Nodes_Ready(session_id)):#Check all roles, if all are ready, then send ack to clients "round_ready"
-                self.publish(topic=session_id,func_name="round_ack",msg="round_ready")
-            
+                self.publish(topic=session_id,func_name="round_ack",msg="round_ready") 
+       
     def __new_fl_session_request(self,
                                     session_id,
                                     session_time,
