@@ -4,8 +4,9 @@ import os
 
 class Role_Arbiter():
     def __init__(self,client_id):
+        self.is_aggregator = False
         self.client_id = client_id
-    
+
     def get_resources(self):
         resources = {
             'cpu_count'     : psutil.cpu_count() ,
@@ -20,6 +21,19 @@ class Role_Arbiter():
         res_msg = json.dumps(resources)
         return res_msg
     
+    def set_current_session(session_id):
+        pass
+
+    def add_role(session_id, role):
+        pass
+
+    def set_role(self,session_id,role):
+        pass
+
+    def reset_role(Self,session_id,role):
+        pass
+    
+
     def set_aggregator(self,id): #TODO: Move this to the Role Arbiter module
         if(id == self.id):
             self.aggregator.is_aggregator = True

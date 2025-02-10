@@ -31,7 +31,7 @@ class PubSub_Base_Executable:
                      myID,
                      broker_ip,
                      broker_port,
-                     start_loop = False):
+                     loop_forever = False):
 
             topics = MQTTFC_Base()
 
@@ -57,7 +57,8 @@ class PubSub_Base_Executable:
 
             print("Initiation Done.")
 
-            if(start_loop):
+            self.loop_forever = loop_forever
+            if(loop_forever):
                 print("Starting base loop right away.")
                 self.base_loop() 
                
@@ -252,7 +253,8 @@ class PubSub_Base_Executable:
                     self.echo_msg("Client " + self.id + " is Restoring program...")
                     restore_count += 1
                     continue
-                   
+            
+            
             self.echo_msg("Client " + self.id + " maximum number of restoration reached. Killing instance. Recommending re-running the code.")
             return -1
         

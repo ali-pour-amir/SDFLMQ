@@ -64,7 +64,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                       
     def __broadcast_roles(self,session_id):
         role_dic = json.dumps(self.session_manager.get_session[session_id].role_dictionary)
-        self.publish(session_id, "get_session_roles"," -roles " + role_dic)
+        self.publish(session_id, "set_session_roles"," -roles " + role_dic)
         
     def order_client_resources(self,model_name, dataset_name) : 
         self.publish(self.CoTClT , "echo_resources" , " -model_name " + model_name + " -dataset_name " + dataset_name)
@@ -141,6 +141,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                                     model_name,
                                     fl_rounds,
                                     client_id,
+                                    client_role,
                                     model_spec,
                                     memcap,
                                     mdatasize,
@@ -159,19 +160,21 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
             self.publish(topic=self.topics.CoTClT + client_id,func_name="session_ack",msg="new_s")
 
         ack2 = self.session_manager.join_session(session_id,
-                                            client_id,
-                                            model_name,
-                                            model_spec,
-                                            fl_rounds,
-                                            memcap,
-                                            mdatasize,
-                                            pspeed)
+                                                client_id,
+                                                client_role,
+                                                model_name,
+                                                model_spec,
+                                                fl_rounds,
+                                                memcap,
+                                                mdatasize,
+                                                pspeed)
         if(ack2 == 0):
             self.publish(topic=self.topics.CoTClT + client_id,func_name="session_ack",msg="join_s")
         
     def __join_fl_session_request(self,
                                     session_id,
                                     client_id,
+                                    client_role,
                                     model_name,
                                     model_spec,
                                     fl_rounds,
@@ -181,6 +184,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         
         ack = self.session_manager.join_session(session_id,
                                             client_id,
+                                            client_role,
                                             model_name,
                                             model_spec,
                                             fl_rounds,

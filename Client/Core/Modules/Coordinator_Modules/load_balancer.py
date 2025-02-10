@@ -41,7 +41,6 @@ class Load_Balancer():
 
     def randomly_update_roles(self,session,max_role_replacement_num):
         #TODO: Read the calculated cost of FL in the previous round, and accordingly build a new role_vector, and feed it to the update_roles.
-        
         role_vector_counter = 0
         init_role_vector = np.zeros(len(session.role_vector),dtype=int)
         while(True):

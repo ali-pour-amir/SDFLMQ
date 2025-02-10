@@ -68,28 +68,32 @@ class Session_Manager():
                      pspeed):
         try:
             if(session_id in self.sessions):
-                if(self.sessions[session_id].model_name == model_name):
-                    if(self.sessions[session_id].model_spec == model_spec):
-                        new_client = Client(client_id,
-                                            client_role,
-                                            fl_rounds,
-                                            memcap,
-                                            mdatasize,
-                                            pspeed)
-                        self.sessions[session_id].add_client(new_client)
-                        return 0
+                if(self.__sessions[session_id].model_name == model_name):
+                    if(self.__sessions[session_id].model_spec == model_spec):
+                        if(len(self.__sessions[session_id].client_list) < self.__sessions[session_id].session_capacity_max):
+                            new_client = Client(client_id,
+                                                client_role,
+                                                fl_rounds,
+                                                memcap,
+                                                mdatasize,
+                                                pspeed)
+                            self.sessions[session_id].add_client(new_client)
+                            return 0
+                        else:
+                            print("session is full.")
+                            return -1
                     else:
                         print("model spec does not match")
-                        return -1
+                        return -2
                 else:
                     print("model name does not match")
-                    return -1
+                    return -3
             else:
                 print("session id does not excist")
-                return -1
+                return -4
         except:
             print("error occured in joining client to session.")
-            return -1
+            return -5
 
     def plot_accloss(self,acc,loss, rounds = 0, init = False):
       

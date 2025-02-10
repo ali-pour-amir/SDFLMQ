@@ -12,10 +12,10 @@ class Clustering_Engine():
     # and level_1 leaves are aggregators or aggregator_trainers, and the level_2 leaves are trainer-only nodes. 
     # Example::
     ##                    [AGG____0]
-    ##                   /          \
-    ##              [AGG_1]         [AGG_2]
-    ##             /   |   \       /   |   \
-    ##           [T1] [T2] [T3]  [T4] [T5] [T6]
+    ##                   /     |     \
+    ##              [AGG_1]   ...     [AGG_n]
+    ##             /   |   \         /   |   \
+    ##           [T1] [T2] [T3]  [Tk-2] [Tk-1] [Tk]
     ###_____________________________________________________________________________________________________
     ###_____________________________________________________________________________________________________
     
@@ -43,6 +43,11 @@ class Clustering_Engine():
 
         return [session.role_vector,session.role_dictionary]
  
+    def greedy_based_topology(self,session):
+        #TODO: Read the calculated cost of FL in the previous round, and accordingly build a new role_vector, and feed it to the update_roles.
+        session.update_roles([])
+        return []
+
     def form_clusters(self,session):
         items = list(session.role_dictionary.items())#check session.role_dictionary
         for i in range(items):
