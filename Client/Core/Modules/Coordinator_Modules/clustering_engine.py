@@ -27,18 +27,18 @@ class Clustering_Engine():
         
         num_trainer_per_l2_cluster = math.ceil(num_training_only / (num_aggregators - 1))
         
-        session.role_dictionary['agg_0'] = []
+        session.role_dictionary['agg_0'+ "_" + str(session.session_id)] = []
         session.role_vector.append(0)
         n_counter = 0
         for i in range(1,num_aggregators):
-            session.role_dictionary['agg_0'].append('agg_' + str(i))
+            session.role_dictionary['agg_0'+ "_" + str(session.session_id)].append('agg_' + str(i)+ "_" + str(session.session_id))
             session.role_vector.append(0)  
-            session.role_dictionary['agg_' + str(i)] = []
+            session.role_dictionary['agg_' + str(i)+ "_" + str(session.session_id)] = []
             for j in range(num_trainer_per_l2_cluster):
                 if(n_counter >= num_training_only):
                     break
                 else:
-                    session.role_dictionary['agg_' + str(i)].append('t_'+str(n_counter))
+                    session.role_dictionary['agg_' + str(i) + "_" + str(session.session_id)].append('t_'+str(n_counter)+ "_" + str(session.session_id))
                     n_counter += 1
 
         return [session.role_vector,session.role_dictionary]
@@ -55,7 +55,7 @@ class Clustering_Engine():
 
             new_node = Cluster_Node("N_" + str(len(session.nodes)),items[i][0],None) #First create the cluster head which has the role of aggregator
             session.nodes.append(new_node)#In each session, there is one root node which is the top-most aggregator. in role_dic it is 'agg_0'. If a given node is 'agg_0', then it is root node
-            if(items[i][0] == "agg_0"):
+            if(items[i][0] == "agg_0_" + str(session.session_id)):
                 new_node.role = components._ROLE_AGGREGATOR_ROOT
                 session.set_root_node(new_node)
             

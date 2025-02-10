@@ -121,7 +121,7 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
 
     def __receive_global(self,session_id,model_params):
         self.controller.set_model(session_id,model_params)
-        ###TODO: then call the model_update_callback
+        ###Then call the model_update_callback
         if(self.model_update_callback != None):
             self.model_update_callback()
     
@@ -184,128 +184,8 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
             self.w_round_complete = False
             print("Round completed. Receiving or should have received new model update\n")
        
-    def __set_session_roles(self,roles):
+    def __set_session_roles(self,session,roles):
         self.arbiter.set_role_dicionary(roles)
-
-    def create_fl_session(self, 
-                            session_id,
-                            session_time,
-                            session_capacity_min,
-                            session_capacity_max, 
-                            waiting_time, 
-                            model_name,
-                            fl_rounds,
-                            model_spec,
-                            memcap,
-                            modelsize,
-                            preferred_role,
-                            prosessing_speed,
-                            model_update_callback):  
-        print("Creating new session:\n"+
-                "Session id:                {session_id},"+
-                "Session time:              {session_time},"+
-                "Min num of contributors:   {session_capacity_min},"+
-                "Max num of contributors:   {session_capacity_max}" +
-                "Session waiting time:      {waiting_time}"+
-                "FL rounds:                 {fl_rounds}"+
-                "Model name:                {model_name}"+
-                "Model size:                {modelsize}"+
-                "Client role:               {preferred_role}")
-        self.model_update_callback = model_update_callback
-        self.publish(self.ClTCoT,"new_fl_session_request",  " -c_id " + str(self.id) + 
-                                                            " -s_id " + str(session_id) +
-                                                            " -s_time " + str(session_time) +
-                                                            " -s_c_min " + str(session_capacity_min) +
-                                                            " -s_c_max " + str(session_capacity_max) + 
-                                                            " -waiting_time " + str(waiting_time) +
-                                                            " -fl_rounds " + str(fl_rounds) + 
-                                                            " -model_name " + str(model_name)+
-                                                            " -model_spec " + str(model_spec)+ 
-                                                            " -memcap " + str(memcap) + 
-                                                            " -mdatasize " + str(modelsize) + 
-                                                            " -client_role " + str(preferred_role) + 
-                                                            " -pspeed " + str(prosessing_speed))
-        self.arbiter.add_role(session_id,preferred_role)
-        self.arbiter.set_current_session(session_id)
-        
-        self.waiting_for_response()
-        
-    def join_fl_session(self,session_id,
-                            preferred_role,
-                            model_name,
-                            model_spec,
-                            fl_rounds,
-                            memcap,
-                            modelsize,
-                            prosessing_speed,
-                            model_update_callback):
-        print("Joining Session:\n"+
-                "Session id:                {session_id},"+
-                "Model name:                {model_name}"+
-                "Model size:                {modelsize}"+
-                "FL rounds:                 {fl_rounds}"+
-                "Client role:               {preferred_role}")
-        self.model_update_callback = model_update_callback
-        self.publish(self.ClTCoT,"join_fl_session_request", " -c_id " + str(self.id) + 
-                                                            " -s_id " + str(session_id) + 
-                                                            " -fl_rounds " + str(fl_rounds) +
-                                                            " -model_name " + str(model_name)+
-                                                            " -model_spec " + str(model_spec)+ 
-                                                            " -memcap " + str(memcap) + 
-                                                            " -mdatasize " + str(modelsize) + 
-                                                            " -client_role " + str(preferred_role) + 
-                                                            " -pspeed " + str(prosessing_speed))
-
-        self.arbiter.add_role(session_id,preferred_role)
-        self.arbiter.set_current_session(session_id)
-        
-        self.waiting_for_response()
-        
-    def leave_session(self, session_id):
-        self.publish(self.ClTCoT,"leave_fl_session_request", " -c_id " + str(self.id) + 
-                                                            " -s_id " + str(session_id))
-
-        self.waiting_for_response()
-        
-    def delete_session(self, session_id):
-        self.publish(self.ClTCoT,"delete_fl_session_request", " -c_id " + str(self.id) + 
-                                                            " -s_id " + str(session_id))
-        
-        self.waiting_for_response()
-        
-    def get_model_spec(self,session_id):
-        return self.controller.get_model_spec(session_id)
-    
-    def add_role(self,session_id,role):
-        self.arbiter.add_session(session_id,role)
-
-    def set_current_session(self,session_id):
-        self.arbiter.set_current_session(session_id)
-    
-    def set_model(self,session_id,model):
-        self.controller.set_model(session_id,model)
-    
-    def send_local(self,session_id): 
-        self.__wait_for_aggregation()
-        
-        weights_and_biases = {}
-        logic_model = self.controller.get_model(session_id)
-        for name, param in logic_model.named_parameters():
-            weights_and_biases[name] = param.data.tolist()
-        model_params = json.dumps(weights_and_biases)
-        
-        self.__wait_round_ready()
-        
-        if(self.arbiter.is_root_aggregator):
-            self.publish(self.aggregator.current_agg_topic_s,"receive_global", " -model_params " + str(model_params)) 
-            print("Global model parameters published to clients. Informing Coordinator.")
-            self.publish(self.ClTCoT,"round_complete","")
-        else:
-            self.publish(self.aggregator.current_agg_topic_s,"receive_local"," -id " + self.id + " -model_params " + str(model_params))
-            print("Model parameters published to aggregator.")
-    
-    def wait_model(self):
-        self.__wait_round_complete()
 
     def __wait_for_response(self):
         if(self.loop_forever):
@@ -352,3 +232,122 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         self.w_round_complete = True
         self.__wait_for_response()
         
+    def create_fl_session(self, 
+                            session_id,
+                            session_time,
+                            session_capacity_min,
+                            session_capacity_max, 
+                            waiting_time, 
+                            model_name,
+                            fl_rounds,
+                            model_spec,
+                            memcap,
+                            modelsize,
+                            preferred_role,
+                            prosessing_speed,
+                            model_update_callback):  
+        print("Creating new session:\n"+
+                "Session id:                {session_id},"+
+                "Session time:              {session_time},"+
+                "Min num of contributors:   {session_capacity_min},"+
+                "Max num of contributors:   {session_capacity_max}" +
+                "Session waiting time:      {waiting_time}"+
+                "FL rounds:                 {fl_rounds}"+
+                "Model name:                {model_name}"+
+                "Model size:                {modelsize}"+
+                "Client role:               {preferred_role}")
+        self.model_update_callback = model_update_callback
+        self.publish(self.ClTCoT,"new_fl_session_request",  " -c_id " + str(self.id) + 
+                                                            " -s_id " + str(session_id) +
+                                                            " -s_time " + str(session_time) +
+                                                            " -s_c_min " + str(session_capacity_min) +
+                                                            " -s_c_max " + str(session_capacity_max) + 
+                                                            " -waiting_time " + str(waiting_time) +
+                                                            " -fl_rounds " + str(fl_rounds) + 
+                                                            " -model_name " + str(model_name)+
+                                                            " -model_spec " + str(model_spec)+ 
+                                                            " -memcap " + str(memcap) + 
+                                                            " -mdatasize " + str(modelsize) + 
+                                                            " -client_role " + str(preferred_role) + 
+                                                            " -pspeed " + str(prosessing_speed))
+        self.arbiter.add_session(session_id)
+        self.arbiter.set_current_session(session_id)
+        self.__wait_new_session_ack()
+        
+    def join_fl_session(self,session_id,
+                            preferred_role,
+                            model_name,
+                            model_spec,
+                            fl_rounds,
+                            memcap,
+                            modelsize,
+                            prosessing_speed,
+                            model_update_callback):
+        print("Joining Session:\n"+
+                "Session id:                {session_id},"+
+                "Model name:                {model_name}"+
+                "Model size:                {modelsize}"+
+                "FL rounds:                 {fl_rounds}"+
+                "Client role:               {preferred_role}")
+        self.model_update_callback = model_update_callback
+        self.publish(self.ClTCoT,"join_fl_session_request", " -c_id " + str(self.id) + 
+                                                            " -s_id " + str(session_id) + 
+                                                            " -fl_rounds " + str(fl_rounds) +
+                                                            " -model_name " + str(model_name)+
+                                                            " -model_spec " + str(model_spec)+ 
+                                                            " -memcap " + str(memcap) + 
+                                                            " -mdatasize " + str(modelsize) + 
+                                                            " -client_role " + str(preferred_role) + 
+                                                            " -pspeed " + str(prosessing_speed))
+
+        self.arbiter.add_session(session_id)
+        self.arbiter.set_current_session(session_id)
+        self.__wait_join_session_ack()
+        
+    def leave_session(self, session_id):
+        self.publish(self.ClTCoT,"leave_fl_session_request", " -c_id " + str(self.id) + 
+                                                            " -s_id " + str(session_id))
+
+        self.__wait_leave_session_ack()
+        
+    def delete_session(self, session_id):
+        self.publish(self.ClTCoT,"delete_fl_session_request", " -c_id " + str(self.id) + 
+                                                            " -s_id " + str(session_id))
+        
+        self.__wait_delete_session_ack()
+        
+    def get_model_spec(self,session_id):
+        return self.controller.get_model_spec(session_id)
+    
+    def add_session(self,session_id,role):
+        self.arbiter.add_session(session_id,role)
+
+    def set_current_session(self,session_id):
+        self.arbiter.set_current_session(session_id)
+    
+    def set_model(self,session_id,model):
+        self.controller.set_model(session_id,model)
+    
+    def send_local(self,session_id): 
+        self.__wait_for_aggregation()
+        
+        weights_and_biases = {}
+        logic_model = self.controller.get_model(session_id)
+        for name, param in logic_model.named_parameters():
+            weights_and_biases[name] = param.data.tolist()
+        model_params = json.dumps(weights_and_biases)
+        
+        self.__wait_round_ready()
+        
+        if(self.arbiter.is_root_aggregator):
+            self.publish(self.arbiter.current_session,"receive_global", " -model_params " + str(model_params)) 
+            print("Global model parameters published to clients. Informing Coordinator.")
+            self.publish(self.ClTCoT,"round_complete","")
+        else:
+            self.publish(self.aggregator.current_agg_topic_s,"receive_local"," -id " + self.id + " -model_params " + str(model_params))
+            print("Model parameters published to aggregator.")
+    
+    def wait_model(self):
+        self.__wait_round_complete()
+
+    
