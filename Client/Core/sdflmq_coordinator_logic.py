@@ -28,15 +28,14 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         self.clustering_engine = Clustering_Engine()
         self.load_balancer = Load_Balancer()
         
-        self.executables.append('order_client_resources')
-        self.executables.append('parse_client_stats')
-        self.executables.append('new_training_session')
-        self.executables.append('initiate_fl')
-        self.executables.append('local_training_complete')
-        self.executables.append('aggregation_complete')
-        self.executables.append('aggregator_received_local_params')
-        self.executables.append('global_model_propagated')
-
+        self.executables.append('create_fl_session')
+        self.executables.append('join_fl_session')
+        self.executables.append('leave_fl_session')
+        self.executables.append('delete_fl_session')
+        self.executables.append('confirm_role')
+        self.executables.append('round_complete')
+        # self.executables.append('')
+        
         super().__init__(
                     myID , 
                     broker_ip , 
@@ -200,83 +199,78 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         super().__execute_on_msg(header_parts, body) 
         # header_parts = self._get_header_body(msg)
 
-        if header_parts[2] == 'initiate_fl' : 
-            self.Initiate_FL()
+        if header_parts[2] == 'create_fl_session' : 
+            client_id = body.split(' -c_id ')[1]  .split(' -s_id ')[0]
+            session_id  = body.split(' -s_id ')[1]  .split(' -s_time ')[0]
+            session_time  = body.split(' -s_time ')[1]  .split(' -s_c_min ')[0]
+            session_capacity_min  = body.split(' -s_c_min ')[1]    .split(' -s_c_max ')[0]
+            session_capacity_max = body.split(' -s_c_max ')[1]   .split(' -waiting_time ')[0]
+            waiting_time     = body.split(' -waiting_time ')[1]   .split(' -model_name ')[0]
+            model_name     = body.split(' -model_name ')[1]   .split(' -fl_rounds ')[0]
+            fl_rounds     = body.split(' -fl_rounds ')[1]   .split(' -model_spec ')[0]
+            model_spec     = body.split(' -model_spec ')[1]   .split(' -memcap ')[0]
+            memcap     = body.split(' -memcap ')[1]   .split(' -mdatasize ')[0]
+            model_size     = body.split(' -mdatasize ')[1]   .split(' -client_role ')[0]
+            preferred_role     = body.split(' -client_role ')[1].split(' -p_speed ')[0]
+            processing_speed     = body.split(' -_speed ')[1] .split(';')[0]
+            # batch_size     = body.split(' - ')[1]   .split(' - ')[0]
+            # num_rounds      = body.split(' - ')[1]    .split(';')[0]
+            self.__new_fl_session_request(session_id = session_id,
+                                          client_id = client_id,
+                                          session_time = session_time,
+                                          session_capacity_min = session_capacity_min,
+                                          session_capacity_max = session_capacity_max,
+                                          waiting_time = waiting_time,
+                                          model_name = model_name,
+                                          fl_rounds = fl_rounds,
+                                          model_spec = model_spec,
+                                          memcap = memcap,
+                                          model_size = model_size,
+                                          preferred_role = preferred_role,
+                                          processing_speed = processing_speed)
 
-        if header_parts[2] == 'order_client_resources' : 
-            self.order_client_resources(self.active_session['model_name'],self.active_session['dataset_name'])
-
-        if header_parts[2] == 'parse_client_stats' : 
-            self.parse_client_stats( header_parts[0],body)
-
-        if header_parts[2] == 'new_training_session':
-            
-            session_name    = body.split(' -session_name ')[1]  .split(' -dataset_name ')[0]
-            dataset_name    = body.split(' -dataset_name ')[1]  .split(' -model_name ')[0]
-            model_name      = body.split(' -model_name ')[1]    .split(' -num_clients ')[0]
-            num_clients     = body.split(' -num_clients ')[1]   .split(' -num_epochs ')[0]
-            num_epochs     = body.split(' -num_epochs ')[1]   .split(' -batch_size ')[0]
-            batch_size     = body.split(' -batch_size ')[1]   .split(' -num_rounds ')[0]
-            num_rounds      = body.split(' -num_rounds ')[1]    .split(';')[0]
-            self.create_new_session(session_name,
-                                    dataset_name,
-                                    model_name,
-                                    num_clients,
-                                    num_epochs,
-                                    batch_size,
-                                    num_rounds)
-
-        if(header_parts[2] == 'local_training_complete'):
-            client_id = body.split(' -id ')[1].split(' -mem ')[0]
-            mem_usage = int(body.split(' -mem ')[1].split(';')[0])
-
-            self.mem_usage_track[client_id].append(mem_usage)
-            if(len(self.total_mem_usage[client_id]) > 0):
-                self.total_mem_usage[client_id].append(mem_usage + self.total_mem_usage[client_id][len(self.total_mem_usage[client_id])-1])
-            else:
-                self.total_mem_usage[client_id].append(mem_usage)
-            
-            
-            # model_acc = body.split(' -model_acc ')[1].split(' -model_loss ')[0]
-            # model_loss = body.split(' -model_loss ')[1].split(';')[0]
-            print("checking client " + client_id + " as its training for the round is finished.")
-            self.check_participant(client_id,
-                                #    model_acc,
-                                #    model_loss
-                                   )
-
-        if(header_parts[2] == 'aggregator_received_local_params'):
-            client_id = body.split(' -id ')[1].split(';')[0]
-            if(client_id in self.active_session['rounds'][self.active_session['current_round']]['participants']):
-                print("Aggregator received model params of client " + client_id)
-                self.clients_sent_local_params[client_id] = 1
-                if(len(self.clients_sent_local_params) == len(self.active_session['rounds'][self.active_session['current_round']]['participants'])):
-                    print("All clients sent their locals. Initiating aggregation.")
-                    self.clients_sent_local_params = {}
-                    self.Prepare_Aggregation()
-            else:
-                print("not in the list")
+        if header_parts[2] == 'join_fl_session' :  
+            client_id = body.split(' -c_id ')[1]  .split(' -s_id ')[0]
+            session_id  = body.split(' -s_id ')[1]  .split(' -s_time ')[0]
+            model_name     = body.split(' -model_name ')[1]   .split(' -fl_rounds ')[0]
+            fl_rounds     = body.split(' -fl_rounds ')[1]   .split(' -model_spec ')[0]
+            model_spec     = body.split(' -model_spec ')[1]   .split(' -memcap ')[0]
+            memcap     = body.split(' -memcap ')[1]   .split(' -mdatasize ')[0]
+            model_size     = body.split(' -mdatasize ')[1]   .split(' -client_role ')[0]
+            preferred_role     = body.split(' -client_role ')[1].split(' -p_speed ')[0]
+            processing_speed     = body.split(' -_speed ')[1] .split(';')[0]
+            self.__join_fl_session_request(session_id = session_id,
+                                           client_id = client_id,
+                                           model_name = model_name,
+                                           fl_rounds = fl_rounds,
+                                           model_spec = model_spec,
+                                           memcap = memcap,
+                                           model_size = model_size,
+                                           preferred_role = preferred_role,
+                                           processing_speed = processing_speed)
         
-        if(header_parts[2] == 'aggregation_complete'):
-            client_id = body.split(' -id ')[1].split(' -model_acc ')[0]
-            model_acc = body.split(' -model_acc ')[1].split(' -model_loss ')[0]
-            model_loss = body.split(' -model_loss ')[1].split(' -mem ')[0]
-            
-            mem_usage = int(body.split(' -mem ')[1].split(';')[0])
-            self.mem_usage_track[client_id][len(self.mem_usage_track[client_id])-1] += mem_usage 
-            self.total_mem_usage[client_id][len(self.total_mem_usage[client_id])-1] += mem_usage 
-           
-
-            self.active_session['rounds'][self.active_session['current_round']]['acc'] = str(model_acc)
-            self.active_session['rounds'][self.active_session['current_round']]['loss'] = str(model_loss)
-            print("Client " + client_id + " has reported aggregation is complete. Requesting for global model propagation.")
-
-            if(self.plot_stats == True):
-                self.plot_accloss(model_acc,model_loss,0,False)
-                
-            self.publish(self.CoTClT,"propagate_global","")
+        if header_parts[2] == 'leave_fl_session' : 
+            client_id = body.split(' -c_id ')[1]  .split(' -s_id ')[0]
+            session_id  = body.split(' -s_id ')[1]  .split(';')[0]
+            print("Leave session has not been implemented yet.")
         
-        if(header_parts[2] == 'global_model_propagated'):
-            print("Global model propagated. Completing round.")
-            self.update_rounds()
+        if header_parts[2] == 'delete_fl_session' : 
+            client_id = body.split(' -c_id ')[1]  .split(' -s_id ')[0]
+            session_id  = body.split(' -s_id ')[1]  .split(';')[0]
+            print("Delete session has not been implemented yet.")
+            
+        if header_parts[2] == 'confirm_role' : 
+            client_id = body.split(' -c_id ')[1]  .split(' -s_id ')[0]
+            session_id  = body.split(' -s_id ')[1]  .split(' -s_time ')[0]
+            role     = body.split(' -role ')[1].split(';')[0]
+            self.__confirm_role(session_id=session_id,
+                                client_id=client_id,
+                                role=role)
+            
+        if header_parts[2] == 'round_complete' : 
+            session_id = body.split(' -s_id ')[1]  .split(' -c_id ')[0]
+            client_id  = body.split(' -c_id ')[1]  .split(';')[0]
+            self.__round_complete(session_id=session_id,
+                                  client_id=client_id)
+        
 

@@ -45,12 +45,6 @@ class dflmq_parameter_server(PubSub_Base_Executable):
 
         self.client.subscribe(self.CoTPST)
 
-    # def _get_header_body(self , msg) -> list :
-    #     header_body = str(msg.payload.decode()).split('::')
-    #     print("MESSAGE Header: " + header_body[0])
-    #     header_parts = header_body[0].split('|')
-    #     return header_parts
-
     def __execute_on_msg(self,header_parts, body):
         super().__execute_on_msg(header_parts, body)
         # header_parts = self._get_header_body(msg)
@@ -66,8 +60,7 @@ class dflmq_parameter_server(PubSub_Base_Executable):
                 print("number of clients does not match with number of ids passed.")
             else:
                 self.publish_dataset(num_clients, dataset_name, ids)
-
-        
+      
     def broadcast_model(self,model_name):
         model = self.model_stash[model_name]
         weights_and_biases = {}
@@ -96,16 +89,16 @@ class dflmq_parameter_server(PubSub_Base_Executable):
             buffer.close()
 
 
-userID = input("Parameter Server ID: ")
-print("PS with ID=" + userID +" is created.")
+# userID = input("Parameter Server ID: ")
+# print("PS with ID=" + userID +" is created.")
 
-exec_program = dflmq_parameter_server(myID = userID,
-        broker_ip = 'localhost' ,
-        broker_port = 1883,
-        introduction_topic='client_introduction',
-        controller_executable_topic='controller_executable',
-        controller_echo_topic="echo",
-        start_loop=False
-)
-exec_program.base_loop()
+# exec_program = dflmq_parameter_server(myID = userID,
+#         broker_ip = 'localhost' ,
+#         broker_port = 1883,
+#         introduction_topic='client_introduction',
+#         controller_executable_topic='controller_executable',
+#         controller_echo_topic="echo",
+#         start_loop=False
+# )
+# exec_program.base_loop()
 
