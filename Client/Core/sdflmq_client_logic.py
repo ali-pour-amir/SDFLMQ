@@ -65,6 +65,7 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
     
         self.executables.extend(self.aggregator.executables)
         self.client.subscribe(self.CoTClT)
+        self.client.subscribe(self.CoTClT + self.id)
         # self.client.subscribe(self.PSTCoT)
         self.client.subscribe(self.PSTCliIDT)
 
@@ -110,13 +111,13 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
                                          roles=role_dic)
 
             if header_parts[2] == 'session_ack':
-                ack_type = body.split(' -ack_type ')[1]  .split(' -ack ')[0]
-                ack = body.split(' -ack ')[1]  .split(';')[0]
+                ack_type = body.split(' -ack_type ')[1]  .split(' -session_id ')[0]
+                session_id = body.split(' -session_id ')[1]  .split(';')[0]
                 self.__session_ack( ack_type=ack_type,
-                                    ack_msg=ack)
+                                    session_id=session_id)
             
             if header_parts[2] == 'round_ack':
-                ack_type = body.split(' -ack ')[1]  .split(';')[0]
+                ack = body.split(' -ack ')[1]  .split(';')[0]
                 self.__round_ack(ack=ack)
 
     def __report_resources(self,res_msg) -> None : 
@@ -139,44 +140,56 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         self.send_local(session_id=session_id)
         print("Model parameters published higher level.")
     
-    def __reset_role(self,session_id,role):
-        ack = self.arbiter.reset_role(session_id,role)
-        if(ack == 0):
-            if(self.arbiter.is_aggregator or self.arbiter.is_root_aggregator):
-                self.aggregator.set_max_agg_capacity(session_id,len(self.arbiter.session_role_dicionaries[session_id][role]) )
-            self.publish(self.ClTCoT,"confirm_role"," -s_id " + str(session_id) +
-                                                    " -c_id " + str(self.id) +
-                                                    " -role " + str(role))
-            
     def __set_role(self,session_id,role):
         ack = self.arbiter.set_role(session_id,role)
         if(ack == 0):
             if(self.arbiter.is_aggregator or self.arbiter.is_root_aggregator):
                 self.aggregator.set_max_agg_capacity(session_id,len(self.arbiter.session_role_dicionaries[session_id][role]) )
+                if(self.arbiter.is_aggregator):
+                    self.client.subscribe(self.arbiter.get_role())
             self.publish(self.ClTCoT,"confirm_role"," -s_id " + str(session_id) +
                                                     " -c_id " + str(self.id) +
                                                     " -role " + str(role))
-        
-    def __session_ack(self, ack_type, ack_msg):
+  
+    def __reset_role(self,session_id,role):
+        if(self.arbiter.is_aggregator or self.arbiter.is_root_aggregator):
+            self.client.unsubscribe(self.arbiter.get_role())
+        ack = self.arbiter.reset_role(session_id,role)
+        if(ack == 0):
+            if(self.arbiter.is_aggregator or self.arbiter.is_root_aggregator):
+                self.aggregator.set_max_agg_capacity(session_id,len(self.arbiter.session_role_dicionaries[session_id][role]) )
+                if(self.arbiter.is_aggregator):
+                    self.client.subscribe(self.arbiter.get_role())
+            self.publish(self.ClTCoT,"confirm_role"," -s_id " + str(session_id) +
+                                                    " -c_id " + str(self.id) +
+                                                    " -role " + str(role))
+            
+    def __session_ack(self, ack_type, session_id):
         if(ack_type == "new_s"):
             self.w_new_session = False
-            print("New session established\n")
+            self.client.subscribe(str(session_id))
+            print("New session established. Subscribed from the session.\n")
         if(ack_type == "join_s"):
             self.w_join_session = False
-            print("Successfully joined session\n")
+            self.client.subscribe(str(session_id))
+            print("Successfully joined session. Subscribed from the session.\n")
             
         if(ack_type == "leave_s"):
             self.w_leave_session = False
-            print("Successfully left session\n")
+            self.client.unsubscribe(str(session_id))
+            print("Successfully left session. Unsubscribed from the session.\n")
             
         if(ack_type == "delete_s"):
             self.delete_session = False
-            print("Successfully deleted session\n")
+            self.client.unsubscribe(str(session_id))
+            print("Successfully deleted session. Unsubscribed from the session.\n")
             
         if(ack_type == "active_s"):
             print("Session is active. Now waiting for role...\n")
+            
         if(ack_type == "terminate_s"):
-            print("Session terminated\n")
+            self.client.unsubscribe(str(session_id))
+            print("Session terminated. Unsubscribed from the session.\n")
     
     def __round_ack(self, ack): 
         if(ack == "round_ready"):

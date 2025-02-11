@@ -111,7 +111,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         #Inform Clients in nodes with NODE_PENDING status
         for node in session.nodes:
             if(node.status == components._NODE_PENDING):
-                self.publish(topic=self.topics.CoTClT + node.client.id,func_name="set_role",msg=node.role)
+                self.publish(topic=self.CoTClT + node.client.id,func_name="set_role",msg=node.role)
 
         self.__broadcast_roles(session_id)
 
@@ -123,7 +123,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         #Inform Clients in nodes with NODE_PENDING status
         for node in session.nodes:
             if(node.status == components._NODE_PENDING):
-                self.publish(topic=self.topics.CoTClT + node.client.id,func_name="reset_role",msg=node.role)
+                self.publish(topic=self.CoTClT + node.client.id,func_name="reset_role",msg=node.role)
     
     def __confirm_role(self,session_id,client_id,role):
         ack = self.Session_Manager.get_session(session_id).confirm_role(role,client_id) #Set new role for the client as ready 
@@ -156,7 +156,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                                                 fl_rounds)
         
         if(ack == 0):
-            self.publish(topic=self.topics.CoTClT + client_id,func_name="session_ack",msg="new_s")
+            self.publish(topic=self.CoTClT + client_id,func_name="session_ack",msg="new_s")
 
         ack2 = self.session_manager.join_session(session_id,
                                                 client_id,
@@ -168,7 +168,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                                                 mdatasize,
                                                 pspeed)
         if(ack2 == 0):
-            self.publish(topic=self.topics.CoTClT + client_id,func_name="session_ack",msg="join_s")
+            self.publish(topic=self.CoTClT + client_id,func_name="session_ack",msg="join_s")
         
     def __join_fl_session_request(self,
                                     session_id,
@@ -193,7 +193,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         
         if(ack == 0):
             self.__check_session_status(session_id)
-            self.publish(topic=self.topics.CoTClT + client_id,func_name="session_ack",msg="join_s")
+            self.publish(topic=self.CoTClT + client_id,func_name="session_ack",msg="join_s")
             
     def __execute_on_msg(self, header_parts, body) -> None :
         super().__execute_on_msg(header_parts, body) 
