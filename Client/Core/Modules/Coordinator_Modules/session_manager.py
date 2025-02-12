@@ -1,19 +1,19 @@
 import numpy as np
 import datetime
 import matplotlib.pyplot as plt
-import Core.Modeules.Coordinator_Modules.components as components
+from . import components as components 
 
-from Core.Modules.Coordinator_Modules.components import Cluster
-from Core.Modules.Coordinator_Modules.components import Cluster_Node
-from Core.Modules.Coordinator_Modules.components import Session
-from Core.Modules.Coordinator_Modules.components import Client
+from ..Coordinator_Modules.components import Cluster
+from ..Coordinator_Modules.components import Cluster_Node
+from ..Coordinator_Modules.components import Session
+from ..Coordinator_Modules.components import Client
 
 class Session_Manager():
     def __init__(self):
         self.__sessions = {}
     
     def All_Nodes_Ready(self,session_id):
-        for n in self.sessions[session_id].nodes:
+        for n in self.__sessions[session_id].nodes:
             if(n.is_elected):
                 if(n.status == components._NODE_PENDING):
                     return False
@@ -21,12 +21,18 @@ class Session_Manager():
    
     def update_session(self,session_id):
         if(self.__sessions[session_id].session_creation_time + #Check session Time
-           self.__sessions[session_id].session_time > datetime.datetime.now()):
-            self.__sessions[session_id].session_status = components._SESSION_TIMEOUT
-            print("Session with session_id " + session_id + " reached timeout, and no longer alive")
-        if((len(self.__sessions[session_id].client_list) >= self.__sessions[session_id].session_capacity_min)): #Check list of clients, in relation to min capacity and max capacity
+           self.__sessions[session_id].session_time < datetime.datetime.now()):
+            if((len(self.__sessions[session_id].client_list) >= self.__sessions[session_id].session_capacity_min)): #Check list of clients, in relation to min capacity and max capacity
+                self.__sessions[session_id].session_status = components._SESSION_ACTIVE  #if greater than min cap is met then session ready
+                print("Session ready")
+            else:
+                self.__sessions[session_id].session_status = components._SESSION_TIMEOUT
+                print("Session with session_id " + session_id + " reached timeout, and no longer alive")
+
+        elif((len(self.__sessions[session_id].client_list) == self.__sessions[session_id].session_capacity_max)): #Check list of clients, in relation to min capacity and max capacity
             self.__sessions[session_id].session_status = components._SESSION_ACTIVE  #if greater than min cap is met then session ready
             print("Session ready")
+            
             
     def get_session(self,session_id):
         self.update_session(session_id)
@@ -41,7 +47,7 @@ class Session_Manager():
                             model_name,
                             model_spec,
                             fl_rounds):
-        try:
+        # try:
             new_session = Session(  session_id,
                                     session_time,
                                     session_capacity_min,
@@ -51,11 +57,11 @@ class Session_Manager():
                                     model_spec,
                                     fl_rounds)
             
-            self.sessions[session_id] = new_session
+            self.__sessions[session_id] = new_session
             return 0
-        except:
-            print("Error occured in new session generation.")
-            return -1
+        # except:
+        #     print("error occured in new session generation.")
+        #     return -1
 
     def join_session(self,
                      session_id,
@@ -67,8 +73,8 @@ class Session_Manager():
                      memcap,
                      mdatasize,
                      pspeed):
-        try:
-            if(session_id in self.sessions):
+        # try:
+            if(session_id in self.__sessions):
                 if(self.__sessions[session_id].model_name == model_name):
                     if(self.__sessions[session_id].model_spec == model_spec):
                         if(len(self.__sessions[session_id].client_list) < self.__sessions[session_id].session_capacity_max):
@@ -78,7 +84,7 @@ class Session_Manager():
                                                 memcap,
                                                 mdatasize,
                                                 pspeed)
-                            self.sessions[session_id].add_client(new_client)
+                            self.__sessions[session_id].add_client(new_client)
                             return 0
                         else:
                             print("session is full.")
@@ -92,9 +98,9 @@ class Session_Manager():
             else:
                 print("session id does not excist")
                 return -4
-        except:
-            print("error occured in joining client to session.")
-            return -5
+        # except:
+        #     print("error occured in joining client to session.")
+        #     return -5
 
     def plot_accloss(self,acc,loss, rounds = 0, init = False):
       

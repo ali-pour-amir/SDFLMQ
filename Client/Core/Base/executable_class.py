@@ -2,7 +2,7 @@ import paho.mqtt.client as mqtt
 import time as T
 import re
 import os
-from Core.Base.topics import MQTTFC_Base
+from .topics import MQTTFC_Base
 
 msg_size_limit = 10000000 #characters
 
@@ -35,6 +35,7 @@ class PubSub_Base_Executable:
 
             topics = MQTTFC_Base()
 
+            self.is_connected = False
             self.id = myID
             self.broker_ip = broker_ip
             self.broker_port = broker_port
@@ -47,9 +48,11 @@ class PubSub_Base_Executable:
             self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
             self.client.on_connect = self.on_connect
             self.client.on_message = self.msg_parse
+            
             self.client.connect(self.broker_ip,
                                 self.broker_port,
                                 self.connection_timeout)
+            
             
             self.root_directory = self.id+"_data"
             if(os.path.isdir(self.root_directory) == False):
@@ -58,15 +61,19 @@ class PubSub_Base_Executable:
             print("Initiation Done.")
 
             self.loop_forever = loop_forever
+            
             if(loop_forever):
                 print("Starting base loop right away.")
-                self.base_loop() 
+                self.base_loop()
+            else:
+                while(self.is_connected == False):
+                    self.oneshot_loop()
                
 
 #SECTION:: CONNECTIVITY
 
         def msg_parse(self, client, userdata, msg):
-            try: 
+            # try: 
                 #print("MESSAGE: " + msg.payload.decode())
                 header_body = str(msg.payload.decode()).split('::')
                 # print("MESSAGE Header: " + header_body[0])
@@ -89,12 +96,12 @@ class PubSub_Base_Executable:
                         body = self.MQTT_msg_merge(header_parts[5])
                 else:
                     body = header_body[1]
-                self.__execute_on_msg(header_parts, body)
-            except Exception as e:  
-                print("Message was not right, or something wrong with one of the internal functions! See below:\n" + repr(e))
+                self.execute_on_msg(header_parts, body)
+            # except Exception as e:  
+                # print("Message was not right, or something wrong with one of the internal functions! See below:\n" + repr(e))
 
 
-        def __execute_on_msg (self, header_parts, body):                             ### TO OVERRIDE IN SUCCEEDING CLASSES            
+        def execute_on_msg (self, header_parts, body):                             ### TO OVERRIDE IN SUCCEEDING CLASSES            
             if header_parts[2] == 'print':
                 body_split = body.split('-m ')[1].split(';')[0]
                 self.print(body_split)
@@ -111,6 +118,7 @@ class PubSub_Base_Executable:
         def on_connect(self,client,userdata, flags, rc):
             print("Connected with result code " + str(rc))
             client.subscribe(self.controller_executable_topic)
+            self.is_connected = True
             print("Subscribed to " + self.controller_executable_topic)
 
         def MQTT_msg_craft(self,topic,func_name,msg,is_split = False, payload_id = '-1', batch_index = -1):
@@ -167,7 +175,8 @@ class PubSub_Base_Executable:
                 self.client.publish(topic, payload = payload)
             else:
                 payload = self.MQTT_msg_craft(topic,func_name,msg)
-                self.client.publish(topic, payload = payload)
+                # print("publishing payload: " + payload)
+                self.client.publish(topic, payload = payload,qos=2,retain=True)
 #SECTION:: EXECUTABLES
     
         def echo_name(self):
@@ -203,7 +212,7 @@ class PubSub_Base_Executable:
             while(True):
                 error = ""
                 try:
-                    print("Client loop forever started ...")
+                    # print("Client loop forever started ...")
                     self.client.loop_forever()
                 except OSError:
                     error = "Executable ran into error: " + OSError.strerror                                                                      
@@ -222,11 +231,11 @@ class PubSub_Base_Executable:
             while(restore_count < 10):
                 error = ""
                 try:
-                    print("Client one-shot loop started ...")
+                    # print("Client one-shot loop started ...")
                     self.client.loop()
                     if(callback != None):
                         callback(*args)
-                    print("Client one-shot loop ended ...")
+                    # print("Client one-shot loop ended ...")
                     return 0
                 except OSError:
                     error = "Executable ran into error: " + OSError.strerror                                                                      
@@ -244,7 +253,7 @@ class PubSub_Base_Executable:
             while(restore_count < 10):
                 error = ""
                 try:
-                    print("Client parallel loop started on separate thread ...")
+                    # print("Client parallel loop started on separate thread ...")
                     self.client.loop_start()
                     return 0
                 except OSError:

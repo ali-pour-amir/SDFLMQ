@@ -44,7 +44,7 @@ class Role_Arbiter():
             if(role == "agg_0_" + str(session_id)):
                 self.is_aggregator = True
                 self.is_root_aggregator = True
-                return None
+                
             elif(role[0] == 'a'):
                 self.is_aggregator = True
                 self.is_root_aggregator = False
@@ -53,7 +53,7 @@ class Role_Arbiter():
                 self.is_root_aggregator = False
             else:
                 print("Unknown role!!")
-                return
+                return -1
             
             role_dic = self.session_role_dicionaries[session_id]
             agg_clients = role_dic.keys()
@@ -62,7 +62,10 @@ class Role_Arbiter():
                 if(role in sub_clients):
                     print("Found matching role in role dictionary. Returning aggregator of the cluster")
                     self.cluster_heads[session_id] = agg_c
-                    return agg_c
+                    # return agg_c
+
+            return 0
+            
         else:
             print("No session found with session id: " + str(session_id))
             
@@ -72,7 +75,7 @@ class Role_Arbiter():
             if(role == "agg_0_" + str(session_id)):
                 self.is_aggregator = True
                 self.is_root_aggregator = True
-                return None
+                
             elif(role[0] == 'a'):
                 self.is_aggregator = True
                 self.is_root_aggregator = False
@@ -81,7 +84,8 @@ class Role_Arbiter():
                 self.is_root_aggregator = False
             else:
                 print("Unknown role!!")
-                return
+                return -1
+            
             role_dic = self.session_role_dicionaries[session_id]
             agg_clients = role_dic.keys()
             for agg_c in agg_clients:
@@ -89,12 +93,13 @@ class Role_Arbiter():
                 if(role in sub_clients):
                     print("Found matching role in role dictionary. Returning aggregator of the cluster")
                     self.cluster_heads[session_id] = agg_c
-                    return agg_c
+                    # return agg_c
+            return 0
         else:
             print("No session found with session id: " + str(session_id))
 
     def set_role_dicionary(self,session_id,roles):
-        self.session_role_dicionaries[session_id] = roles 
+        self.session_role_dicionaries[session_id] = json.loads(roles)
     
     def get_session_aggregator(self,session_id):
         return self.cluster_heads[session_id]

@@ -8,7 +8,7 @@ class MQTTFC_Base():
 
 class SDFLMQ_Topics(MQTTFC_Base):
     def __init__(self):
-        super.__init__()
+        super().__init__()
         self.CoTClT = "Coo_to_Cli_ID_"
         self.ClTCoT = "Cli_to_Coo_T"
         self.PSTCoT = "PS_to_Cli_T"

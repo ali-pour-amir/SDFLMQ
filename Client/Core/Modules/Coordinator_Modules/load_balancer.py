@@ -1,7 +1,8 @@
-from Core.Modules.Coordinator_Modules.components import Cluster
-from Core.Modules.Coordinator_Modules.components import Cluster_Node
-from Core.Modules.Coordinator_Modules.components import Session
-import Core.Modules.Coordinator_Modules.components as components
+from . import components as components
+from .components import Cluster
+from .components import Cluster_Node
+from .components import Session
+
 import random
 import numpy as np
 class Load_Balancer():
@@ -15,18 +16,19 @@ class Load_Balancer():
         role_vector_counter = 0
         init_role_vector = np.zeros(len(session.role_vector),dtype=int)
         while(True):
-            client_index = random.randint(0,len(session.client_list))
+            client_index = random.randint(0,len(session.client_list)-1)
+            print(client_index)
             if(client_index in init_role_vector):
                 continue
-            if(session.client_list[client_index].preferred_role == components._ROLE_TRAINER):
+            # print("number of added clients: " + str(len(session.client_list)))
+            if(session.client_list[client_index].preferred_role == "trainer"):
                 continue
             else:
                 init_role_vector[role_vector_counter] = client_index
                 role_vector_counter += 1
             if(role_vector_counter == len(init_role_vector)):
                 break
-            
-        session.set_roles(init_role_vector)
+        session.role_vector = init_role_vector
         return session.role_vector
     
     def greedy_optimize_roles(self,session):
@@ -47,7 +49,7 @@ class Load_Balancer():
             client_index = random.randint(0,len(session.client_list))
             if(client_index in init_role_vector):
                 continue
-            if(session.client_list[client_index].preferred_role == components._ROLE_TRAINER):
+            if(session.client_list[client_index].preferred_role == "trainer"):
                 continue
             else:
                 init_role_vector[role_vector_counter] = client_index

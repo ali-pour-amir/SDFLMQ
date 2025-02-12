@@ -1,4 +1,7 @@
-import datetime
+
+from datetime import datetime,timedelta
+
+from dateutil import parser 
 
 _ROLE_AGGREGATOR_ROOT = '00'
 _ROLE_AGGREGATOR = '10'
@@ -16,17 +19,18 @@ _SESSION_TERMINATED = '11'
 _ROUND_READY = '00'
 _ROUND_COMPLETE = '01'
 
-
 class Client :
     def __init__(self,
                  client_id,
                  preferred_role,
+                 fl_rounds,
                  memcap,
                  mdatasize,
                  pspeed) :
         
         self.client_id = client_id  
         self.preferred_role = preferred_role
+        self.fl_rounds = fl_rounds
         self.memcap = memcap 
         self.pspeed = pspeed
         self.mdatasize = mdatasize
@@ -52,7 +56,7 @@ class Cluster():
         self.cluster_nodes = []
 
     def add_node(self,node):
-        self.cluster_head.append(node)
+        self.cluster_nodes.append(node)
 
     def set_cluster_head(self,node):
         self.cluster_head = node
@@ -76,31 +80,35 @@ class Session():
         self.role_vector = []
         self.role_dictionary = {}
         self.session_id = session_id
-        self.session_time = session_time
-        self.session_creation_time = datetime.datetime.now()
-        self.session_capacity_min = session_capacity_min
-        self.session_capacity_max = session_capacity_max 
-        self.waiting_time = waiting_time
+        
+        t = datetime.strptime(session_time,"%H:%M:%S")
+        delta = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
+        self.session_time = (delta)
+
+        self.session_creation_time = datetime.now()
+        self.session_capacity_min = int(session_capacity_min)
+        self.session_capacity_max = int(session_capacity_max)
+        self.waiting_time = parser.parse(waiting_time)
         self.model_name = model_name
-        self.model_stat = model_spec
-        self.num_rounds = fl_rounds
+        self.model_spec = model_spec
+        self.num_rounds = int(fl_rounds)
         self.current_round_index = 0
         self.session_status = _SESSION_ALIVE
         round = {'participants' : [],
                 'status': _ROUND_READY, 
                 'acc':'',
                 'loss':'',
-                'starting_time':datetime.datetime.now(),
+                'starting_time':datetime.now(),
                 'completion_time':None,
                 'processing_time':None}
         
         self.rounds  = [round]
-        self.session_creation_time = datetime.datetime.now()
+        self.session_creation_time = datetime.now()
 
     def complete_round(self):
         if(self.rounds[self.current_round_index]['status'] == _ROUND_READY):
             self.rounds[self.current_round_index]['status'] = _ROUND_COMPLETE
-            self.rounds[self.current_round_index]['completion_time'] = datetime.datetime.now()
+            self.rounds[self.current_round_index]['completion_time'] = datetime.now()
             self.rounds[self.current_round_index]['processing_time'] = self.rounds[self.current_round_index]['completion_time'] - self.rounds[self.current_round_index]['starting_time']
             self.current_round_index = self.current_round_index + 1
     
@@ -109,7 +117,7 @@ class Session():
                         'status': _ROUND_READY, 
                         'acc':'',
                         'loss':'',
-                        'starting_time':datetime.datetime.now(),
+                        'starting_time':datetime.now(),
                         'completion_time':None,
                         'processing_time':None}
         self.rounds.append(new_round)
@@ -129,10 +137,11 @@ class Session():
         #in case of not hitting max capacity, some nodes are unallocated. if so, their is_elected should remain False
         
         #FIRST: Assign clients to Nodes which their role is equal to the counting agg_roles (extracted from role_dictionary key items).
-        agg_roles = self.role_dictionary.keys()
+        agg_roles = list(self.role_dictionary.keys())
         for i,j in enumerate(role_vector):
             for k in range(len(self.nodes)):
-                if(agg_roles[i] == self.nodes[k]):
+                # print("node role : " + str(self.nodes[k].role))
+                if(agg_roles[i] == self.nodes[k].role):
                     self.nodes[k].client = self.client_list[j]
                     self.nodes[k].status = _NODE_PENDING
                     self.client_list[j].is_placed = True
@@ -140,7 +149,7 @@ class Session():
         
         #SECOND: Traverse the list of clients, those that hasn't been placed yet, find a node in the list of nodes which has no clients 
         #        and also has a role name starting with 't' indicating the node accepts trainer clients, and assigns the client to the node.
-        for l in range(self.client_list):
+        for l in range(len(self.client_list)):
             if(self.client_list[l].is_placed == False):
                 for m in range(len(self.nodes)):
                     if(self.nodes[m].client == None):
@@ -152,16 +161,16 @@ class Session():
                 
         self.role_vector = role_vector
         
-    def get_root_node(self,node):
+    def set_root_node(self,node):
         self.root_node = node
     
-    def set_root_node(self):
+    def get_root_node(self):
         return self.root_node
     
     def confirm_role(self,role,client_id):
         for i in range(len(self.nodes)):
             if(self.nodes[i].role == role):
-                if(self.nodes[i].client.id == client_id):
+                if(self.nodes[i].client.client_id == client_id):
                     self.nodes[i].status = _NODE_ACTIVE
 
     def update_roles(self,new_role_vector):
@@ -174,7 +183,7 @@ class Session():
         for i,j in enumerate(new_role_vector):
             if(old_role_vector[i] != j):
                 for m in range(len(self.nodes)):
-                    if(self.nodes[m].client.id == self.client_list[j].id):
+                    if(self.nodes[m].client.client_id == self.client_list[j].id):
                         self.nodes[m].client = None
                         self.nodes[m].status = _NODE_PENDING
                         break
@@ -204,12 +213,15 @@ class Session():
         #revert node.status in updated nodes to _NODE_PENDING
         #for nodes not allocated, check their is_elected is false
         self.role_vector = new_role_vector
-        
+
+    def set_clusters(self,clusters):
+        self.clusters = clusters
+           
     def update_clusters(self,new_role_dictionary):
         return
     
     def add_cluster(self,cluster):
-        self.cluster.append(cluster)
+        self.clusters.append(cluster)
     
     def remove_cluster(self,cluster):
         return
