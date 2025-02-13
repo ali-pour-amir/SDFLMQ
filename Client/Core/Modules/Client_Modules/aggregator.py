@@ -11,30 +11,36 @@ class SDFLMQ_Aggregator():
     def set_max_agg_capacity(self,session_id,max_clients):
         self.max_clients[session_id] = max_clients
     
-    def accumulate_params(self,session_id, params):
+    def accumulate_params(self,session_id, local_model, params):
         if(session_id not in self.client_model_params):
             self.client_model_params[session_id] = [params]    
         else:
             self.client_model_params[session_id].append(params)
         
         if(len(self.client_model_params[session_id]) >= self.max_clients[session_id]):
-            g_model = self.fed_average(session_id)
+            print("number of contributing clients: " + str(len(self.client_model_params[session_id])))
+            g_model = self.fed_average(session_id,local_model)
             return [1,g_model]
         else:
             return [0,None]
         
-    def fed_average(self, session_id):
-        global_dict = self.client_model_params[session_id][0]
+    def fed_average(self,session_id, local_model):
+      
+        global_dict = {}
+        for name, param in local_model.named_parameters():
+            global_dict[name] = param.data.tolist()
+
         # print("Length of client model params list: " + str(len(self.client_model_params)))
         num_clients = len(self.client_model_params[session_id])
         param_names = global_dict.keys()
         for name in param_names:
-            for i in range(1,num_clients):
+            for i in range(num_clients):
                 # print(global_dict[name])
                 # print(self.client_model_params[i][name])
-                if(name in self.client_model_params[i]):
-                    global_dict[name] += torch.tensor(self.client_model_params[i][name])
-            global_dict[name] = global_dict[name] / (num_clients)
+                if(name in self.client_model_params[session_id][i]):
+                    global_dict[name] += torch.tensor(self.client_model_params[session_id][i][name])
+                    # print(global_dict[name])
+            global_dict[name] =  torch.tensor(global_dict[name]) / num_clients
         # global_model.load_state_dict(global_dict)
         self.client_model_params[session_id] = []
         return global_dict

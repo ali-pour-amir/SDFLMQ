@@ -67,6 +67,7 @@ class PubSub_Base_Executable:
                 self.base_loop()
             else:
                 while(self.is_connected == False):
+                    print("waiting for connection")
                     self.oneshot_loop()
                
 
@@ -169,14 +170,14 @@ class PubSub_Base_Executable:
                 for batch in msg_batches:
                     print("Publishing batch index " + str(batch[1]))
                     payload = self.MQTT_msg_craft(topic,func_name,batch[2],True,batch[0],batch[1])
-                    self.client.publish(topic, payload = payload)
+                    self.client.publish(topic, payload = payload,qos=2)
                 #End of batch::
                 payload = self.MQTT_msg_craft(topic,func_name,"",True,batch[0],-1)
-                self.client.publish(topic, payload = payload)
+                self.client.publish(topic, payload = payload,qos=2)
             else:
                 payload = self.MQTT_msg_craft(topic,func_name,msg)
                 # print("publishing payload: " + payload)
-                self.client.publish(topic, payload = payload,qos=2,retain=True)
+                self.client.publish(topic, payload = payload,qos=2)
 #SECTION:: EXECUTABLES
     
         def echo_name(self):
@@ -235,7 +236,7 @@ class PubSub_Base_Executable:
                     self.client.loop()
                     if(callback != None):
                         callback(*args)
-                    # print("Client one-shot loop ended ...")
+                    print("Client one-shot loop ended ...")
                     return 0
                 except OSError:
                     error = "Executable ran into error: " + OSError.strerror                                                                      

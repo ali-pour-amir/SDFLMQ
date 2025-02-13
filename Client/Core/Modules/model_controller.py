@@ -15,6 +15,9 @@ class Model_Controller():
         self.Models[session_id] = model
 
     def update_model(self,session_id,model_params):
+        keys = list(model_params.keys())
+        for k in keys:
+            model_params[k] = torch.tensor(model_params[k])
         self.Models[session_id].load_state_dict(model_params)
     
     def get_model_spec(self,model,ml_framework = "pytorch"):

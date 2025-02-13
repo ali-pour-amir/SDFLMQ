@@ -4,6 +4,7 @@ from .Modules.Client_Modules.role_arbiter import Role_Arbiter
 from .Modules.model_controller import Model_Controller
 from .Base.topics import SDFLMQ_Topics
 
+import time
 import numpy as np
 import json
 from datetime import datetime, timedelta
@@ -31,7 +32,7 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         self.w_round_ready = False
         self.w_round_complete = False
         self.w_aggregation = False
-
+        self.w_global_model = False
         # os.system('setterm -background yellow -foreground black')
         # os.system('clear')
         self.aggregator     = SDFLMQ_Aggregator()
@@ -74,12 +75,12 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
                 model_params = body.split(' -model_params ')[1]  .split(';')[0]
                 self.__receive_global(  session_id=session_id,
                                         model_params=model_params)
-                
+                self.publish(self.ClTCoT,"client_received_global"," -s_id " + str(session_id) + " -c_id " + str(self.id))
             if header_parts[2] == 'receive_local':
                 session_id = body.split(' -s_id ')[1]  .split(' -model_params ')[0]
                 model_params = body.split(' -model_params ')[1]  .split(';')[0]
-                self.__receive_local(  session_id=session_id,
-                                        model_params=model_params)
+                self.__receive_local(session_id=session_id,
+                                    params=model_params)
 
             if header_parts[2] == 'send_local':
                 session_id = body.split(' -s_id ')[1]  .split(';')[0]
@@ -121,17 +122,24 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         self.publish(topic=self.ClTCoT,func_name="parse_client_stats",msg=res_msg)
 
     def __receive_global(self,session_id,model_params):
-        self.controller.update_model(session_id,model_params)
+        print("receiving global update")
+        self.w_global_model = False
+        params = json.loads(model_params)
+        self.controller.update_model(session_id,params)
         if(self.model_update_callback != None):
             self.model_update_callback()
+        
     
     def __receive_local(self,session_id, params):
         if(self.arbiter.is_aggregator):
             model_params = json.loads(params)
-            [ack,g_model] = self.aggregator.accumulate_params(session_id,model_params)
+            print("accumulating params for " + str(len(self.aggregator.client_model_params)) + " clients.")
+            [ack,g_model] = self.aggregator.accumulate_params(session_id,self.controller.get_model(session_id),model_params)
             if(ack == 1):
                 self.w_aggregation = False
-                self.controller.update_model(g_model)
+                # g_params = g_model.get_state_dic()
+                self.controller.update_model(session_id,g_model)
+            print("accumulated params.")
 
     def __send_local(self,session_id):
         self.send_local(session_id=session_id)
@@ -145,9 +153,11 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
             print("role set successfully")
             if(self.arbiter.is_aggregator or self.arbiter.is_root_aggregator):
                 print(role)
+                print(session_id,len(self.arbiter.session_role_dicionaries[session_id][role]))
                 self.aggregator.set_max_agg_capacity(session_id,len(self.arbiter.session_role_dicionaries[session_id][role]) )
                 if(self.arbiter.is_aggregator):
                     self.client.subscribe(self.arbiter.get_role(session_id),qos=2)
+                    print("subscribed to role topic: " + self.arbiter.get_role(session_id))
             self.publish(self.ClTCoT,"confirm_role"," -s_id " + str(session_id) +
                                                     " -c_id " + str(self.id) +
                                                     " -role " + str(role))
@@ -218,12 +228,20 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
                       self.w_leave_session or
                       self.w_round_ready or
                       self.w_round_complete or
-                      self.w_aggregation)
-            # print("Waiting...")
+                      self.w_aggregation or
+                      self.w_global_model)
+            print("Waiting...")
+            print("Role : " + str(self.arbiter.get_role(self.arbiter.current_session)))
+            print(self.w_aggregation)
+            print(self.w_join_session)
+            print(self.w_new_session)
+            print(self.w_round_ready)
+            print(self.w_round_complete)
+            print(self.w_global_model)
             self.oneshot_loop()
     
     def __wait_for_aggregation(self):
-        if(self.arbiter.is_aggregator):
+        if(self.arbiter.is_aggregator or self.arbiter.is_root_aggregator):
             self.w_aggregation = True
             self.__wait_for_response()
 
@@ -250,7 +268,9 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
     def __wait_round_complete(self):
         self.w_round_complete = True
         self.__wait_for_response()
-        
+    def __wait_global_model(self):
+        self.w_global_model = True
+        self.__wait_for_response()
     def create_fl_session(self, 
                             session_id :str,
                             session_time : timedelta,
@@ -322,6 +342,13 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
     def get_model_spec(self,session_id):
         return self.controller.get_model_spec(session_id)
     
+    def set_model(self,session_id,model):
+        self.controller.set_model(session_id=session_id,
+                                  model=model)
+
+    def get_model(self,session_id):
+        self.controller.get_model(session_id)
+
     def send_local(self,session_id): 
         self.__wait_for_aggregation()
         
@@ -334,14 +361,13 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         self.__wait_round_ready()
         
         if(self.arbiter.is_root_aggregator):
-            self.publish(self.arbiter.current_session,"receive_global", " -model_params " + str(model_params)) 
-            print("Global model parameters published to clients. Informing Coordinator.")
-            self.publish(self.ClTCoT,"round_complete"," -s_id " + str(session_id) + " -c_id " + str(self.client._client_id))
+            self.publish(self.arbiter.current_session,"receive_global", " -s_id " + str(session_id) + " -model_params " + str(model_params)) 
+            print("Global model parameters published to clients.")
         else:
-            self.publish(self.arbiter.get_session_aggregator(),"receive_local"," -id " + self.id + " -model_params " + str(model_params))
-            print("Model parameters published to aggregator.")
+            self.publish(self.arbiter.get_session_aggregator(session_id),"receive_local"," -s_id " + str(self.arbiter.current_session) + " -model_params " + str(model_params))
+            print("Model parameters published to aggregator: " + str(self.arbiter.get_session_aggregator(session_id)))
     
     def wait_model(self):
-        self.__wait_round_complete()
+        self.__wait_global_model()
 
     

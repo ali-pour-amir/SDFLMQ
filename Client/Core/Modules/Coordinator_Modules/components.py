@@ -105,9 +105,11 @@ class Session():
         self.rounds  = [round]
         self.session_creation_time = datetime.now()
 
-    def complete_round(self):
+    def complete_round(self,acc = 0,loss = 0):
         if(self.rounds[self.current_round_index]['status'] == _ROUND_READY):
             self.rounds[self.current_round_index]['status'] = _ROUND_COMPLETE
+            self.rounds[self.current_round_index]['acc'] = acc
+            self.rounds[self.current_round_index]['loss'] = loss
             self.rounds[self.current_round_index]['completion_time'] = datetime.now()
             self.rounds[self.current_round_index]['processing_time'] = self.rounds[self.current_round_index]['completion_time'] - self.rounds[self.current_round_index]['starting_time']
             self.current_round_index = self.current_round_index + 1
@@ -121,7 +123,13 @@ class Session():
                         'completion_time':None,
                         'processing_time':None}
         self.rounds.append(new_round)
-                 
+
+    def get_participants(self):
+        return self.rounds[self.current_round_index]['participants']
+    def add_participant(self,client_id):
+        if(client_id not in self.rounds[self.current_round_index]['participants']):
+            self.rounds[self.current_round_index]['participants'].append(client_id)
+
     def add_client(self, client):
         self.client_list.append(client)
        
@@ -172,10 +180,12 @@ class Session():
             if(self.nodes[i].role == role):
                 if(self.nodes[i].client.client_id == client_id):
                     self.nodes[i].status = _NODE_ACTIVE
+                    return 0
+        return -1
 
     def update_roles(self,new_role_vector):
         old_role_vector = self.role_vector
-        agg_roles = self.role_dictionary.keys()
+        agg_roles = list(self.role_dictionary.keys())
         
         #FIRST: Traverse the new_role_vector and find the item(s) which differ compare to the old_role_vector.
         #       Then, traverse the list of nodes, and extract the node which has been assigned the client which appears to be in the new role_vector element for the updating node.
@@ -183,10 +193,11 @@ class Session():
         for i,j in enumerate(new_role_vector):
             if(old_role_vector[i] != j):
                 for m in range(len(self.nodes)):
-                    if(self.nodes[m].client.client_id == self.client_list[j].id):
-                        self.nodes[m].client = None
-                        self.nodes[m].status = _NODE_PENDING
-                        break
+                    if(self.nodes[m].status == _NODE_ACTIVE):
+                        if(self.nodes[m].client.client_id == self.client_list[j].client_id):
+                            self.nodes[m].client = None
+                            self.nodes[m].status = _NODE_PENDING
+                            break
                 #
                 # self.client_list[old_role_vector[i]].is_placed = False
 
@@ -199,7 +210,7 @@ class Session():
                         self.nodes[k].status = _NODE_PENDING
                         self.client_list[j].is_placed = True
         #THIRD: search the list of clients, and find those whose is_placed is false. When found one, search the list of nodes and find the first that has no client attached which also is trainer only, and assign the found client to it.
-        for l in range(self.client_list):
+        for l in range(len(self.client_list)):
             if(self.client_list[l].is_placed == False):
                 for m in range(len(self.nodes)):
                     if(self.nodes[m].client == None):

@@ -67,6 +67,7 @@ class Clustering_Engine():
                     break
             if(has_node == False):
                 new_node = Cluster_Node("N_" + str(len(session.nodes)),items[i],None) #First create the cluster head which has the role of aggregator
+                new_node.status = components._NODE_PENDING
                 session.nodes.append(new_node)#In each session, there is one root node which is the top-most aggregator. in role_dic it is 'agg_0'. If a given node is 'agg_0', then it is root node
             
             if(items[i] == "agg_0_" + str(session.session_id)):
@@ -77,6 +78,7 @@ class Clustering_Engine():
             
             for j in range(0,len(session.role_dictionary[items[i]])):#Now form clusters of nodes (not clients) based on the list of each aggregator's items
                 new_sub_node = Cluster_Node("N_" + str(len(session.nodes)),session.role_dictionary[items[i]][j],None)
+                new_sub_node.status = components._NODE_PENDING
                 session.nodes.append(new_sub_node)
                 # if(items[i][j][0] == 't'):
                 #     new_sub_node.role = components._ROLE_TRAINER

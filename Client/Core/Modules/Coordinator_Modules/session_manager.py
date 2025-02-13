@@ -13,25 +13,29 @@ class Session_Manager():
         self.__sessions = {}
     
     def All_Nodes_Ready(self,session_id):
+        active_nodes = 0
         for n in self.__sessions[session_id].nodes:
-            if(n.is_elected):
-                if(n.status == components._NODE_PENDING):
-                    return False
-        return True
+            # if(n.is_elected):
+                if(n.status == components._NODE_ACTIVE):
+                    active_nodes += 1
+        if(active_nodes == len(self.__sessions[session_id].nodes)):
+            return True
+        else:
+            return False
    
     def update_session(self,session_id):
         if(self.__sessions[session_id].session_creation_time + #Check session Time
            self.__sessions[session_id].session_time < datetime.datetime.now()):
             if((len(self.__sessions[session_id].client_list) >= self.__sessions[session_id].session_capacity_min)): #Check list of clients, in relation to min capacity and max capacity
                 self.__sessions[session_id].session_status = components._SESSION_ACTIVE  #if greater than min cap is met then session ready
-                print("Session ready")
+                # print("Session ready")
             else:
                 self.__sessions[session_id].session_status = components._SESSION_TIMEOUT
                 print("Session with session_id " + session_id + " reached timeout, and no longer alive")
 
         elif((len(self.__sessions[session_id].client_list) == self.__sessions[session_id].session_capacity_max)): #Check list of clients, in relation to min capacity and max capacity
             self.__sessions[session_id].session_status = components._SESSION_ACTIVE  #if greater than min cap is met then session ready
-            print("Session ready")
+            # print("Session ready")
             
             
     def get_session(self,session_id):

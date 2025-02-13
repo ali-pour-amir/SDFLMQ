@@ -41,12 +41,12 @@ class Load_Balancer():
         session.update_roles([])
         return []
 
-    def randomly_update_roles(self,session,max_role_replacement_num):
+    def randomly_update_roles(self,session):
         #TODO: Read the calculated cost of FL in the previous round, and accordingly build a new role_vector, and feed it to the update_roles.
         role_vector_counter = 0
         init_role_vector = np.zeros(len(session.role_vector),dtype=int)
         while(True):
-            client_index = random.randint(0,len(session.client_list))
+            client_index = random.randint(0,len(session.client_list)-1)
             if(client_index in init_role_vector):
                 continue
             if(session.client_list[client_index].preferred_role == "trainer"):
