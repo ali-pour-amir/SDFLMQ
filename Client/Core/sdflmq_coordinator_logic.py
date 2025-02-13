@@ -71,7 +71,6 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         # print(role_dic)
         self.publish(session_id, "set_session_roles"," -s_id " + str(session_id) + " -role_dic " + str(role_dic))
         
-
     def order_client_resources(self,model_name, dataset_name) : 
         self.publish(self.CoTClT , "echo_resources" , " -model_name " + model_name + " -dataset_name " + dataset_name)
         
@@ -88,23 +87,26 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         self.publish(topic=session_id,func_name="report_client_stats",msg="")
 
     def __client_received_global(self,session_id,client_id):
-        print("received globallllllllllllllllllllll for session id: " + str(session_id) + " and client "+ str(client_id))
+        print("client " + str(client_id) + " received global for session id: " + str(session_id))
         for c in self.session_manager.get_session(session_id).client_list:
 
             if(client_id == c.client_id): #If client id matching with root aggregator and if session id matching
-                print("found client")
                 self.session_manager.get_session(session_id).add_participant(client_id)#Increase round step
-                print(len(self.session_manager.get_session(session_id).get_participants()))
-                print(len(self.session_manager.get_session(session_id).client_list))
+                # print(len(self.session_manager.get_session(session_id).get_participants()))
+                # print(len(self.session_manager.get_session(session_id).client_list))
                 if(len(self.session_manager.get_session(session_id).get_participants()) == len(self.session_manager.get_session(session_id).client_list)):
-                    print("sending round complete")
+                    print("Flagging round as complete.")
                     self.session_manager.get_session(session_id).complete_round()
+                    self.session_manager.update_session(session_id)
+                    # print("current round index: " + str(self.session_manager.get_session(session_id).current_round_index))
+                    # print("max num rounds : " + str(self.session_manager.get_session(session_id).num_rounds))
+                    print(self.session_manager.get_session(session_id).session_status)
                     self.publish(topic=session_id,func_name="round_ack",msg=" -session_id " + str(session_id) + " -ack round_complete")#Send ack to clients "round_complete"
                     if(self.session_manager.get_session(session_id).session_status == components._SESSION_TERMINATED):  #On get_session it is checked if round counter equal to max round of session.
-                        print("session terminated")
+                        print("Session terminated")
                         self.publish(topic=session_id,func_name="session_ack",msg= " -session_id " + str(session_id) + " -ack_type terminate_s")        #If yes, terminate session, and send ack to clients "session_terminated"
                     elif(self.session_manager.get_session(session_id).session_status == components._SESSION_ACTIVE):#If not, and session is still active then:
-                        print("updating round")
+                        print("Updating session with new round and updating roles.")
                         self.session_manager.get_session(session_id).new_round()#Set new round
                         self.__update_roles(session_id)
                 break
@@ -135,7 +137,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
     def __clusterize_session(self,session_id):
         session = self.session_manager.get_session(session_id)
         self.clustering_engine.create_2layer_topology(session,0.5)
-        print("sessions role dictionary: " + str(session.role_dictionary))
+        # print("sessions role dictionary: " + str(session.role_dictionary))
         role_dic = json.dumps(session.role_dictionary)
         clusters = self.clustering_engine.form_clusters(session)
         session.set_clusters(clusters)
@@ -144,35 +146,32 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         session.set_roles(roles_vector)
         # print("len nodes: " + str(len(session.nodes)))
         for node in session.nodes:
-            print(node.role)
+            # print(node.role)
             if(node.status == components._NODE_PENDING):
-                time.sleep(.5)
-               
+                time.sleep(1)
                 self.publish(topic=self.CoTClT + node.client.client_id,func_name="set_role",msg= " -s_id " + str(session_id) + " -role " + str(node.role)+ " -role_dic " + str(role_dic))
 
-       
-
     def __update_roles(self,session_id):
-        print("updating roles")
+        # print("updating roles")
         session = self.session_manager.get_session(session_id)
         #1) Returns a new role_vector based on the optimizer's suggestion
         #2) Updates the roles according to the new_role_Vector. This only looks into the nodes, and does not need to travers into clusters.
         self.load_balancer.randomly_update_roles(session)
         #Inform Clients in nodes with NODE_PENDING status
         for node in session.nodes:
-            print(node.role)
+            # print(node.role)
             if(node.status == components._NODE_PENDING):
-                time.sleep(.5)
-                print("Notifying clients with new roles")
+                time.sleep(1)
+                print("Notifying clients with new roles\n")
                 self.publish(topic=self.CoTClT + node.client.client_id,func_name="reset_role",msg= " -s_id " + str(session_id) + " -role " + str(node.role))
     
     def __confirm_role(self,session_id,client_id,role):
-        print("confriming role")
+        print("confriming role\n")
         ack = self.session_manager.get_session(session_id).confirm_role(role,client_id) #Set new role for the client as ready 
         if(ack == 0):
             if(self.session_manager.All_Nodes_Ready(session_id)):#Check all roles, if all are ready, then send ack to clients "round_ready"
                 self.publish(topic=session_id,func_name="round_ack",msg=" -session_id " + str(session_id) + " -ack round_ready") 
-                print("published round ready")
+                print("published round ready\n")
        
     def __new_fl_session_request(self,
                                     session_id,
@@ -188,7 +187,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                                     memcap,
                                     model_size,
                                     pspeed):
-        print("received request for new session")
+        print("Received request for new session\n")
         ack = self.session_manager.create_new_session(session_id,
                                                 session_time,
                                                 session_capacity_min,
@@ -233,7 +232,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                                             memcap,
                                             model_size,
                                             pspeed)
-        
+        print("Received request for joining session" + str(session_id) + "\n")
         if(ack == 0):
             self.__check_session_status(session_id)
             self.publish(topic=self.CoTClT + client_id,func_name="session_ack",msg=" -session_id " + str(session_id) + " -ack_type join_s")

@@ -25,7 +25,7 @@ class MLP(nn.Module):
         x = self.relu(self.fc2(x))
         x = self.fc3(x)  # No activation on last layer (logits for CrossEntropyLoss)
         return x
-
+FL_ROUNDS = 2
 # Load MNIST dataset
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
 full_train_dataset = torchvision.datasets.MNIST(root='./data', train=True, transform=transform, download=True)
@@ -55,14 +55,14 @@ fl_client = SDFLMQ_Client(  myID=myid,
 fl_client.join_fl_session(session_id="session_01",
                                 memcap=0,
                                 model_spec=0,
-                                fl_rounds=2,
+                                fl_rounds=FL_ROUNDS,
                                 model_name="mlp",
                                 modelsize=1000,
                                 preferred_role="aggregator",
                                 processing_speed= 10,
                                 model_update_callback=printsomething)
 
-for k in range(2):
+for k in range(FL_ROUNDS):
     # Training Loop
     num_epochs = 5
     for epoch in range(num_epochs):

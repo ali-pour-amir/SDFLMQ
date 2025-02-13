@@ -17,7 +17,7 @@ class Load_Balancer():
         init_role_vector = np.zeros(len(session.role_vector),dtype=int)
         while(True):
             client_index = random.randint(0,len(session.client_list)-1)
-            print(client_index)
+            # print(client_index)
             if(client_index in init_role_vector):
                 continue
             # print("number of added clients: " + str(len(session.client_list)))

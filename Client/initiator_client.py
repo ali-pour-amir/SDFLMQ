@@ -24,7 +24,7 @@ class MLP(nn.Module):
         x = self.relu(self.fc2(x))
         x = self.fc3(x)  # No activation on last layer (logits for CrossEntropyLoss)
         return x
-
+FL_ROUNDS = 2
 # Load MNIST dataset
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
 full_train_dataset = torchvision.datasets.MNIST(root='./data', train=True, transform=transform, download=True)
@@ -38,6 +38,8 @@ train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=64,
 test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=64, shuffle=False)
 # Initialize Model, Loss Function, and Optimizer
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 model = MLP().to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -52,12 +54,12 @@ fl_client = SDFLMQ_Client(  myID=myid,
                                 loop_forever=False)
 fl_client.create_fl_session(session_id="session_01",
                             session_time=timedelta(hours=1),
-                            session_capacity_min= 5,
-                            session_capacity_max= 5,
-                            waiting_time=timedelta(minutes=2),
+                            session_capacity_min= 4,
+                            session_capacity_max= 4,
+                            waiting_time=timedelta(minutes=10),
                             memcap=0,
                             model_spec=0,
-                            fl_rounds=2,
+                            fl_rounds=FL_ROUNDS,
                             model_name="mlp",
                             modelsize=1000,
                             preferred_role="aggregator",
@@ -65,7 +67,7 @@ fl_client.create_fl_session(session_id="session_01",
                             model_update_callback=printsomething)
 
 
-for k in range(2):
+for k in range(FL_ROUNDS):
     # Training Loop
     num_epochs = 5
     for epoch in range(num_epochs):
@@ -86,7 +88,6 @@ for k in range(2):
     
     fl_client.set_model('session_01',model)
     fl_client.send_local('session_01')
-
     fl_client.wait_model()
     # model = fl_client.get_model('session_01')
 

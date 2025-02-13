@@ -24,19 +24,33 @@ class Session_Manager():
             return False
    
     def update_session(self,session_id):
+
+        print("Current round index: " + str(self.__sessions[session_id].current_round_index))
+        print("Max rounds: " + str(self.__sessions[session_id].num_rounds))
+        
+        if(self.__sessions[session_id].current_round_index >= self.__sessions[session_id].num_rounds):
+            # print("Session terminated for reaching max fl rounds")
+            self.__sessions[session_id].session_status = components._SESSION_TERMINATED
+            return
+
         if(self.__sessions[session_id].session_creation_time + #Check session Time
            self.__sessions[session_id].session_time < datetime.datetime.now()):
             if((len(self.__sessions[session_id].client_list) >= self.__sessions[session_id].session_capacity_min)): #Check list of clients, in relation to min capacity and max capacity
                 self.__sessions[session_id].session_status = components._SESSION_ACTIVE  #if greater than min cap is met then session ready
+                return
                 # print("Session ready")
             else:
                 self.__sessions[session_id].session_status = components._SESSION_TIMEOUT
-                print("Session with session_id " + session_id + " reached timeout, and no longer alive")
+                return
+                # print("Session with session_id " + session_id + " reached timeout, and no longer alive")
 
         elif((len(self.__sessions[session_id].client_list) == self.__sessions[session_id].session_capacity_max)): #Check list of clients, in relation to min capacity and max capacity
             self.__sessions[session_id].session_status = components._SESSION_ACTIVE  #if greater than min cap is met then session ready
+            return
             # print("Session ready")
-            
+        
+        
+        
             
     def get_session(self,session_id):
         self.update_session(session_id)

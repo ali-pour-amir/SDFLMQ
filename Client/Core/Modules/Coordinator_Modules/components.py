@@ -166,7 +166,9 @@ class Session():
                             self.nodes[m].status = _NODE_PENDING
                             self.client_list[l].is_placed = True
                             break
-                
+        
+        for n in self.nodes:
+            print("node " + n.name + " role " + n.role + " status " + n.status + " client " + str(n.client))
         self.role_vector = role_vector
         
     def set_root_node(self,node):
@@ -184,9 +186,13 @@ class Session():
         return -1
 
     def update_roles(self,new_role_vector):
-        old_role_vector = self.role_vector
-        agg_roles = list(self.role_dictionary.keys())
         
+        old_role_vector = self.role_vector
+
+        print(old_role_vector)
+        print(new_role_vector)
+
+        agg_roles = list(self.role_dictionary.keys())
         #FIRST: Traverse the new_role_vector and find the item(s) which differ compare to the old_role_vector.
         #       Then, traverse the list of nodes, and extract the node which has been assigned the client which appears to be in the new role_vector element for the updating node.
         #       After finding the node, set it's client to none, and break out of the for.
@@ -195,6 +201,7 @@ class Session():
                 for m in range(len(self.nodes)):
                     if(self.nodes[m].status == _NODE_ACTIVE):
                         if(self.nodes[m].client.client_id == self.client_list[j].client_id):
+                            self.nodes[m].client.is_placed = False
                             self.nodes[m].client = None
                             self.nodes[m].status = _NODE_PENDING
                             break
@@ -204,11 +211,15 @@ class Session():
                 #SECOND: Traverse the list of nodes and find the node whose role maches the counting updating role according the agg_roles set.
                 #        Then, first set its client free by setting it's is_placed atribute to false. Then assign the new client to the node, and set it to pending mode and set the newly placed client as placed.
                 for k in range(len(self.nodes)):
+                # print("node role : " + str(self.nodes[k].role))
                     if(agg_roles[i] == self.nodes[k].role):
-                        self.nodes[k].client.is_placed = False
+                        if(self.nodes[k].client != None):
+                            self.nodes[k].client.is_placed = False
+                            self.nodes[k].status = _NODE_PENDING
                         self.nodes[k].client = self.client_list[j]
-                        self.nodes[k].status = _NODE_PENDING
                         self.client_list[j].is_placed = True
+                        break
+                        
         #THIRD: search the list of clients, and find those whose is_placed is false. When found one, search the list of nodes and find the first that has no client attached which also is trainer only, and assign the found client to it.
         for l in range(len(self.client_list)):
             if(self.client_list[l].is_placed == False):
@@ -219,7 +230,9 @@ class Session():
                             self.nodes[m].status = _NODE_PENDING
                             self.client_list[l].is_placed = True
                             break
-                        
+
+        for n in self.nodes:
+            print("node " + n.name + " role " + n.role + " status " + n.status + " client " + str(n.client))
         #set root node according to new_role_vector
         #revert node.status in updated nodes to _NODE_PENDING
         #for nodes not allocated, check their is_elected is false

@@ -118,7 +118,7 @@ class PubSub_Base_Executable:
        
         def on_connect(self,client,userdata, flags, rc):
             print("Connected with result code " + str(rc))
-            client.subscribe(self.controller_executable_topic)
+            self.client.subscribe(self.controller_executable_topic,)
             self.is_connected = True
             print("Subscribed to " + self.controller_executable_topic)
 
@@ -236,7 +236,8 @@ class PubSub_Base_Executable:
                     self.client.loop()
                     if(callback != None):
                         callback(*args)
-                    print("Client one-shot loop ended ...")
+                    self.client.loop()
+                    # print("Client one-shot loop ended ...")
                     return 0
                 except OSError:
                     error = "Executable ran into error: " + OSError.strerror                                                                      
