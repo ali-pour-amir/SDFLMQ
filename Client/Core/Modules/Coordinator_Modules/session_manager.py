@@ -18,10 +18,13 @@ class Session_Manager():
             # if(n.is_elected):
                 if(n.status == components._NODE_ACTIVE):
                     active_nodes += 1
-        if(active_nodes == len(self.__sessions[session_id].nodes)):
-            return True
+        # if(active_nodes == len(self.__sessions[session_id].nodes)):
+        if((active_nodes == self.__sessions[session_id].session_capacity_max) or 
+           ((active_nodes >= self.__sessions[session_id].session_capacity_min) and 
+            (datetime.datetime.now() > self.__sessions[session_id].get_current_round()['starting_time'] + self.__sessions[session_id].waiting_time))):
+            return [True, active_nodes]
         else:
-            return False
+            return [False, active_nodes]
    
     def update_session(self,session_id):
 
@@ -93,29 +96,35 @@ class Session_Manager():
                      pspeed):
         # try:
             if(session_id in self.__sessions):
-                if(self.__sessions[session_id].model_name == model_name):
-                    if(self.__sessions[session_id].model_spec == model_spec):
-                        if(len(self.__sessions[session_id].client_list) < self.__sessions[session_id].session_capacity_max):
-                            new_client = Client(client_id,
-                                                client_role,
-                                                fl_rounds,
-                                                memcap,
-                                                mdatasize,
-                                                pspeed)
-                            self.__sessions[session_id].add_client(new_client)
-                            return 0
+                if(self.__sessions[session_id].num_rounds == int(fl_rounds)):
+                    if(self.__sessions[session_id].model_name == model_name):
+                        if(self.__sessions[session_id].model_spec == model_spec):
+                            if(len(self.__sessions[session_id].client_list) < self.__sessions[session_id].session_capacity_max):
+                                new_client = Client(client_id,
+                                                    client_role,
+                                                    fl_rounds,
+                                                    memcap,
+                                                    mdatasize,
+                                                    pspeed)
+                                self.__sessions[session_id].add_client(new_client)
+                                return 0
+                            else:
+                                print("ERROR: session is full.")
+                                return -1
                         else:
-                            print("session is full.")
-                            return -1
+                            print("ERROR: model spec does not match")
+                            # print(self.__sessions[session_id].num_rounds)
+                            # print()
+                            return -2
                     else:
-                        print("model spec does not match")
-                        return -2
+                        print("ERROR: model name does not match")
+                        return -3
                 else:
-                    print("model name does not match")
-                    return -3
+                    print("ERROR: number of FL rounds does not match.")
+                    return -4
             else:
-                print("session id does not excist")
-                return -4
+                print("ERROR: session id does not excist")
+                return -5
         # except:
         #     print("error occured in joining client to session.")
         #     return -5

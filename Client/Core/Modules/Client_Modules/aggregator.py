@@ -38,9 +38,10 @@ class SDFLMQ_Aggregator():
                 # print(global_dict[name])
                 # print(self.client_model_params[i][name])
                 if(name in self.client_model_params[session_id][i]):
-                    global_dict[name] += torch.tensor(self.client_model_params[session_id][i][name])
+                    layer = self.client_model_params[session_id][i][name]
+                    global_dict[name] = torch.tensor(global_dict[name]) + torch.tensor(layer) 
                     # print(global_dict[name])
-            global_dict[name] =  torch.tensor(global_dict[name]) / num_clients
-        # global_model.load_state_dict(global_dict)
+            global_dict[name] =  global_dict[name] / num_clients
+        local_model.load_state_dict(global_dict)
         self.client_model_params[session_id] = []
         return global_dict

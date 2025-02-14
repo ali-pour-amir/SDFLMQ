@@ -95,6 +95,7 @@ class Session():
         self.current_round_index = 0
         self.session_status = _SESSION_ALIVE
         round = {'participants' : [],
+                 'num_registered_clients' : 0,
                 'status': _ROUND_READY, 
                 'acc':'',
                 'loss':'',
@@ -105,6 +106,8 @@ class Session():
         self.rounds  = [round]
         self.session_creation_time = datetime.now()
 
+    def get_current_round(self):
+        return self.rounds[self.current_round_index]
     def complete_round(self,acc = 0,loss = 0):
         if(self.rounds[self.current_round_index]['status'] == _ROUND_READY):
             self.rounds[self.current_round_index]['status'] = _ROUND_COMPLETE
@@ -116,6 +119,7 @@ class Session():
     
     def new_round(self):
         new_round = {'participants' : [],
+                     'num_registered_clients' : 0,
                         'status': _ROUND_READY, 
                         'acc':'',
                         'loss':'',

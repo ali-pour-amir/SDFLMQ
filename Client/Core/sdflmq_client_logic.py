@@ -33,7 +33,7 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         self.w_round_complete = False
         self.w_aggregation = False
         self.w_global_model = False
-        
+
         # os.system('setterm -background yellow -foreground black')
         # os.system('clear')
         self.aggregator     = SDFLMQ_Aggregator()
@@ -381,6 +381,7 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
             print("Model parameters published to aggregator: " + str(self.arbiter.get_session_aggregator(session_id)))
 
         self.w_global_model = True
+  
     def wait_model(self):
         self.__wait_global_model()
 
