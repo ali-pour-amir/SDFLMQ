@@ -382,7 +382,7 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
 
         self.w_global_model = True
   
-    def wait_model(self):
+    def wait_global_update(self):
         self.__wait_global_model()
 
     

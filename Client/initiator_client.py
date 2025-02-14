@@ -83,7 +83,7 @@ for k in range(FL_ROUNDS):
     
     fl_client.set_model('session_01',model)
     fl_client.send_local('session_01')
-    fl_client.wait_model()
+    fl_client.wait_global_update()
     # model = fl_client.get_model('session_01')
 
 
