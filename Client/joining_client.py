@@ -53,14 +53,9 @@ fl_client = SDFLMQ_Client(  myID=myid,
                                 preferred_role="aggregator",
                                 loop_forever=False)
 fl_client.join_fl_session(session_id="session_01",
-                                memcap=0,
-                                model_spec=0,
                                 fl_rounds=FL_ROUNDS,
                                 model_name="mlp",
-                                modelsize=1000,
-                                preferred_role="aggregator",
-                                processing_speed= 10,
-                                model_update_callback=printsomething)
+                                preferred_role="aggregator")
 
 for k in range(FL_ROUNDS):
     # Training Loop

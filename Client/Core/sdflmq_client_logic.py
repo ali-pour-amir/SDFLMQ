@@ -292,12 +292,12 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
                             waiting_time : timedelta, 
                             model_name : str,
                             fl_rounds : int,
-                            model_spec : str,
-                            memcap : float,
-                            modelsize : float,
                             preferred_role : str,
-                            processing_speed : float,
-                            model_update_callback : None):  
+                            model_update_callback = None,
+                            model_spec = '',
+                            memcap = 0,
+                            modelsize  = 0,
+                            processing_speed = 0):  
         self.model_update_callback = model_update_callback
         self.publish(self.ClTCoT,"create_fl_session",  " -c_id " + str(self.id) + 
                                                             " -s_id " + str(session_id) +
@@ -316,15 +316,15 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         self.arbiter.set_current_session(session_id)
         self.__wait_new_session_ack()
         
-    def join_fl_session(self,session_id,
-                            preferred_role,
-                            model_name,
-                            model_spec,
-                            fl_rounds,
-                            memcap,
-                            modelsize,
-                            processing_speed,
-                            model_update_callback):
+    def join_fl_session(self,session_id : str,
+                            preferred_role : str,
+                            model_name : str,
+                            fl_rounds : int,
+                            model_update_callback = None,
+                            model_spec = '',
+                            memcap = 0,
+                            modelsize = 0,
+                            processing_speed = 0):
         self.model_update_callback = model_update_callback
         self.publish(self.ClTCoT,"join_fl_session", " -c_id " + str(self.id) + 
                                                             " -s_id " + str(session_id) + 

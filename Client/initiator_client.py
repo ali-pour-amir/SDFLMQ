@@ -57,14 +57,9 @@ fl_client.create_fl_session(session_id="session_01",
                             session_capacity_min= 4,
                             session_capacity_max= 4,
                             waiting_time=timedelta(minutes=10),
-                            memcap=0,
-                            model_spec=0,
                             fl_rounds=FL_ROUNDS,
                             model_name="mlp",
-                            modelsize=1000,
-                            preferred_role="aggregator",
-                            processing_speed= 10,
-                            model_update_callback=printsomething)
+                            preferred_role="aggregator")
 
 
 for k in range(FL_ROUNDS):
