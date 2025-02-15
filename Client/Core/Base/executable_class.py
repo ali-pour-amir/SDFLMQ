@@ -178,6 +178,7 @@ class PubSub_Base_Executable:
                 payload = self.MQTT_msg_craft(topic,func_name,msg)
                 # print("publishing payload: " + payload)
                 self.client.publish(topic, payload = payload,qos=2)
+           
 #SECTION:: EXECUTABLES
     
         def echo_name(self):

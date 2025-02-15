@@ -28,8 +28,11 @@ class Clustering_Engine():
         session.role_vector = []
         session.role_dictionary = {}
         num_aggregators = math.floor(session.session_capacity_max * percentage_of_aggs)
+        if(num_aggregators < 2):
+            num_aggregators = 2
+
         num_training_only = session.session_capacity_max - num_aggregators
-        num_trainer_per_l2_cluster = math.ceil(num_training_only / (num_aggregators - 1))
+        num_trainer_per_l2_cluster = math.floor(num_training_only / (num_aggregators - 1))
         
         session.role_dictionary['agg_0'+ "_" + str(session.session_id)] = []
         session.role_vector.append(0)
@@ -44,6 +47,14 @@ class Clustering_Engine():
                 else:
                     session.role_dictionary['agg_' + str(i) + "_" + str(session.session_id)].append('t_'+str(n_counter)+ "_" + str(session.session_id))
                     n_counter += 1
+            
+        if(n_counter < num_training_only):#Distribute the remaining nodes to the aggregators, each receiving one of the remaining nodes
+            for z in range(1,num_aggregators):
+                if(n_counter >= num_training_only):
+                    break
+            else:
+                session.role_dictionary['agg_' + str(z) + "_" + str(session.session_id)].append('t_'+str(n_counter)+ "_" + str(session.session_id))
+                n_counter += 1
 
         return [session.role_vector,session.role_dictionary]
  
@@ -61,7 +72,7 @@ class Clustering_Engine():
             has_node = False
             for n in session.nodes:
                 if(n.role == str(items[i])):
-                    print("already has node")
+                    # print("already has node")
                     new_node = n
                     has_node = True
                     break

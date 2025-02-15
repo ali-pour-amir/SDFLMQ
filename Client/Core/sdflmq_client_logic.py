@@ -225,12 +225,12 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
     
         WAITING1 =  True
         print("Role : " + str(self.arbiter.get_role(self.arbiter.current_session)))
-        print(" waiting for aggregation:            " + str(self.w_aggregation))
-        print(" waiting for join_session ack        " + str(self.w_join_session))
-        print(" waiting for new_session ack         " + str(self.w_new_session))
-        print(" waiting for round ready ack          " + str(self.w_round_ready))
-        print(" waiting for round complete ack      " + str(self.w_round_complete))
-        print(" waiting for global model reception  " + str(self.w_global_model))
+        # print(" waiting for aggregation:            " + str(self.w_aggregation))
+        # print(" waiting for join_session ack        " + str(self.w_join_session))
+        # print(" waiting for new_session ack         " + str(self.w_new_session))
+        # print(" waiting for round ready ack          " + str(self.w_round_ready))
+        # print(" waiting for round complete ack      " + str(self.w_round_complete))
+        # print(" waiting for global model reception  " + str(self.w_global_model))
         while(WAITING1):
             WAITING1 = (self.w_delete_session or
                       self.w_new_session or
@@ -385,4 +385,9 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
     def wait_global_update(self):
         self.__wait_global_model()
 
-    
+    def submit_model_stats(self,session_id,round,acc, loss):
+         self.publish(self.ClTCoT,"submit_model_stat",  " -s_id " + str(session_id) + 
+                                                        " -c_id " + str(self.id) +
+                                                        " -round " + str(round) +
+                                                        " -acc " + str(acc) +
+                                                        " -loss " + str(loss))

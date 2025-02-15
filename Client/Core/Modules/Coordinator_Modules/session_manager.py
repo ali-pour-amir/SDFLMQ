@@ -2,7 +2,8 @@ import numpy as np
 import datetime
 import matplotlib.pyplot as plt
 from . import components as components 
-
+import os
+import json
 from ..Coordinator_Modules.components import Cluster
 from ..Coordinator_Modules.components import Cluster_Node
 from ..Coordinator_Modules.components import Session
@@ -28,8 +29,8 @@ class Session_Manager():
    
     def update_session(self,session_id):
 
-        print("Current round index: " + str(self.__sessions[session_id].current_round_index))
-        print("Max rounds: " + str(self.__sessions[session_id].num_rounds))
+        # print("Current round index: " + str(self.__sessions[session_id].current_round_index))
+        # print("Max rounds: " + str(self.__sessions[session_id].num_rounds))
         
         if(self.__sessions[session_id].current_round_index >= self.__sessions[session_id].num_rounds):
             # print("Session terminated for reaching max fl rounds")
@@ -53,7 +54,32 @@ class Session_Manager():
             # print("Session ready")
         
         
-        
+    def save_session_to_file(self,session_id,rootdir):
+        if(os.path.isdir(rootdir+"/sessions") == False):
+            os.makedirs(rootdir+"/sessions")
+        file = open(rootdir+"/sessions/"+str(session_id) +".json",'w')
+        session_stats = {"session_id" : session_id, 
+                         "session_creation_time" : str(self.__sessions[session_id].session_creation_time),
+                         "session_termination_time" : str(self.__sessions[session_id].session_termination_time),
+                         "total_processing_time" : str(self.__sessions[session_id].total_processing_time),
+                         "max_capacity" : self.__sessions[session_id].session_capacity_max,
+                         "min_capacity" : self.__sessions[session_id].session_capacity_min,
+                         "waiting_time" : str(self.__sessions[session_id].waiting_time),
+                         "model_name" : self.__sessions[session_id].model_name,
+                         "model_spec" : self.__sessions[session_id].model_spec,
+                         "num_rounds" : self.__sessions[session_id].num_rounds,
+                         "rounds" : []}
+        for r in self.__sessions[session_id].rounds:
+            r_str = {'participants' : r['participants'],
+                        'status': r['status'], 
+                        'acc':r['acc'],
+                        'loss':r['loss'],
+                        'starting_time' : str(r['starting_time']),
+                        'completion_time' : str(r['completion_time']) ,
+                        'processing_time': str(r['processing_time'])}
+            session_stats['rounds'].append(r_str)
+        json.dump(session_stats,file)
+        print("Saved session stats into json file.")
             
     def get_session(self,session_id):
         self.update_session(session_id)

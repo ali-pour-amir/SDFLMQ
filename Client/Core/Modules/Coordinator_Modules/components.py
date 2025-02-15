@@ -86,6 +86,8 @@ class Session():
         self.session_time = (delta)
 
         self.session_creation_time = datetime.now()
+        self.session_termination_time = None
+        self.total_processing_time = None
         self.session_capacity_min = int(session_capacity_min)
         self.session_capacity_max = int(session_capacity_max)
         self.waiting_time = parser.parse(waiting_time)
@@ -95,7 +97,7 @@ class Session():
         self.current_round_index = 0
         self.session_status = _SESSION_ALIVE
         round = {'participants' : [],
-                 'num_registered_clients' : 0,
+                'num_registered_clients' : 0,
                 'status': _ROUND_READY, 
                 'acc':'',
                 'loss':'',
@@ -104,7 +106,7 @@ class Session():
                 'processing_time':None}
         
         self.rounds  = [round]
-        self.session_creation_time = datetime.now()
+        # self.session_creation_time = datetime.now()
 
     def get_current_round(self):
         return self.rounds[self.current_round_index]
@@ -119,7 +121,7 @@ class Session():
     
     def new_round(self):
         new_round = {'participants' : [],
-                     'num_registered_clients' : 0,
+                        'num_registered_clients' : 0,
                         'status': _ROUND_READY, 
                         'acc':'',
                         'loss':'',
@@ -171,8 +173,8 @@ class Session():
                             self.client_list[l].is_placed = True
                             break
         
-        for n in self.nodes:
-            print("node " + n.name + " role " + n.role + " status " + n.status + " client " + str(n.client))
+        # for n in self.nodes:
+            # print("node " + n.name + " role " + n.role + " status " + n.status + " client " + str(n.client))
         self.role_vector = role_vector
         
     def set_root_node(self,node):
@@ -193,8 +195,8 @@ class Session():
         
         old_role_vector = self.role_vector
 
-        print(old_role_vector)
-        print(new_role_vector)
+        # print(old_role_vector)
+        # print(new_role_vector)
 
         agg_roles = list(self.role_dictionary.keys())
         #FIRST: Traverse the new_role_vector and find the item(s) which differ compare to the old_role_vector.
@@ -235,8 +237,8 @@ class Session():
                             self.client_list[l].is_placed = True
                             break
 
-        for n in self.nodes:
-            print("node " + n.name + " role " + n.role + " status " + n.status + " client " + str(n.client))
+        # for n in self.nodes:
+        #     print("node " + n.name + " role " + n.role + " status " + n.status + " client " + str(n.client))
         #set root node according to new_role_vector
         #revert node.status in updated nodes to _NODE_PENDING
         #for nodes not allocated, check their is_elected is false

@@ -25,13 +25,14 @@ class MLP(nn.Module):
         x = self.relu(self.fc2(x))
         x = self.fc3(x)  # No activation on last layer (logits for CrossEntropyLoss)
         return x
-FL_ROUNDS = 4
+FL_ROUNDS = 11
+session_name = "session_02"
 # Load MNIST dataset
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
 full_train_dataset = torchvision.datasets.MNIST(root='./data', train=True, transform=transform, download=True)
 test_dataset = torchvision.datasets.MNIST(root='./data', train=False, transform=transform, download=True)
-# Select 5% of the training dataset
-num_samples = int(0.01 * len(full_train_dataset))  # 5% of 60,000 -> 3,000 samples
+
+num_samples = int(0.01 * len(full_train_dataset)) 
 subset_indices = torch.randperm(len(full_train_dataset))[:num_samples]  # Randomly select indices
 train_dataset = Subset(full_train_dataset, subset_indices)
 # DataLoaders
@@ -52,7 +53,7 @@ fl_client = SDFLMQ_Client(  myID=myid,
                                 broker_port = 1883,
                                 preferred_role="aggregator",
                                 loop_forever=False)
-fl_client.join_fl_session(session_id="session_01",
+fl_client.join_fl_session(session_id=session_name,
                                 fl_rounds=FL_ROUNDS,
                                 model_name="mlp",
                                 preferred_role="aggregator")
@@ -76,8 +77,8 @@ for k in range(FL_ROUNDS):
         print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}")
 
     #Joining session for aggregation
-    fl_client.set_model('session_01',model)
-    fl_client.send_local('session_01')
+    fl_client.set_model(session_name,model)
+    fl_client.send_local(session_name)
     fl_client.wait_global_update()
     # model = fl_client.get_model('session_01')
 

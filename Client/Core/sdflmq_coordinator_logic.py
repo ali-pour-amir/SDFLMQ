@@ -4,13 +4,14 @@ from .Modules.Coordinator_Modules import components as components
 from .Modules.Coordinator_Modules.session_manager import Session_Manager
 from .Modules.Coordinator_Modules.clustering_engine import Clustering_Engine
 from .Modules.Coordinator_Modules.load_balancer import Load_Balancer
-
+import datetime
 import json
 import ast
 import matplotlib.pyplot as plt
 import threading
 import random
 import time
+
 class DFLMQ_Coordinator(PubSub_Base_Executable) :
 
     def __init__(self , 
@@ -34,38 +35,32 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         self.executables.append('delete_fl_session')
         self.executables.append('confirm_role')
         self.executables.append('client_received_global')
+        self.executables.append('submit_model_stat')
+
         # self.executables.append('')
-        
         
         super().__init__(
                     myID , 
                     broker_ip , 
                     broker_port ,
                     loop_forever)
-        
-     
+            
     def on_connect(self, client, userdata, flags, rc):
         super().on_connect(client, userdata, flags, rc)
         self.client.subscribe(self.CiTCoT,qos=2) 
         print("subscribed to client_to_coordinator topic.")
     
-    def __parse_client_stats(self , client_id,session_id, statsstr) : 
+    def __submit_model_stat(self,session_id,client_id,round,acc,loss):
+        session = self.session_manager.get_session(session_id)
+        # r = session.current_round_index
+        r = round
+        if(client_id in session.rounds[r]['participants']):
+            session.rounds[r]['acc'] = acc
+            session.rounds[r]['loss'] = loss
+            self.session_manager.save_session_to_file(session_id,self.root_directory)
+        else:
+            print("client " + str(client_id) + " who wants to submit model stats is not in the list of participants in round " + str(r) + " of sessoin " + str(session_id))
 
-        stats = json.loads(statsstr)
-        round_status = self.active_session['rounds'][self.active_session['current_round']]['status'] 
-
-        if((round_status != 'pending') and (round_status != 'complete')):
-            if(client_id in self.client_stats):
-                self.client_stats[client_id]['bandwidth'].append(stats['bandwidth'])
-                self.client_stats[client_id]['cpu_frequency'].append(stats['cpu_frequency'])
-                self.client_stats[client_id]['available_ram'].append(stats['available_ram'])
-
-            else:
-                self.client_stats[client_id] = {}
-                self.client_stats[client_id]['bandwidth']      =  [stats['bandwidth']]
-                self.client_stats[client_id]['cpu_frequency']  =  [stats['cpu_frequency']]
-                self.client_stats[client_id]['available_ram']      =  [stats['available_ram']]
-                      
     def __broadcast_roles(self,session_id): #TODO: set retain flag true for this one for other joining clients.
         role_dic = json.dumps(self.session_manager.get_session(session_id).role_dictionary)
         # print(role_dic)
@@ -74,20 +69,12 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
     def order_client_resources(self,model_name, dataset_name) : 
         self.publish(self.CoTClT , "echo_resources" , " -model_name " + model_name + " -dataset_name " + dataset_name)
         
-    def Initiate_FL(self):
-        self.order_client_resources(self.active_session['model_name'],self.active_session['dataset_name'])
-
-    def save_logs(self):
-        session_file = open(self.root_directory + "/"+self.active_session['session_name']+".txt",'w')
-        client_stats_file = open(self.root_directory + "/"+self.active_session['session_name']+"_client_stats.txt",'w')
-        json.dump(self.active_session,session_file)
-        json.dump(self.client_stats,client_stats_file)
-
+    
     def request_client_stats(self,session_id):
         self.publish(topic=session_id,func_name="report_client_stats",msg="")
 
     def __client_received_global(self,session_id,client_id):
-        print("client " + str(client_id) + " received global for session id: " + str(session_id))
+        # print("client " + str(client_id) + " received global for session id: " + str(session_id))
         for c in self.session_manager.get_session(session_id).client_list:
             if(client_id == c.client_id): #If client id matching with root aggregator and if session id matching
                 self.session_manager.get_session(session_id).add_participant(client_id)#Increase round step
@@ -95,10 +82,14 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                     print("Flagging round as complete.")
                     self.session_manager.get_session(session_id).complete_round()
                     self.session_manager.update_session(session_id)
-                    print(self.session_manager.get_session(session_id).session_status)
+                    # print(self.session_manager.get_session(session_id).session_status)
                     self.publish(topic=session_id,func_name="round_ack",msg=" -session_id " + str(session_id) + " -ack round_complete")#Send ack to clients "round_complete"
                     if(self.session_manager.get_session(session_id).session_status == components._SESSION_TERMINATED):  #On get_session it is checked if round counter equal to max round of session.
                         print("Session terminated")
+                        session = self.session_manager.get_session(session_id)
+                        session.session_termination_time = datetime.datetime.now()
+                        session.total_processing_time = session.session_termination_time - session.session_creation_time
+                        self.session_manager.save_session_to_file(session_id,self.root_directory)
                         self.publish(topic=session_id,func_name="session_ack",msg= " -session_id " + str(session_id) + " -ack_type terminate_s")        #If yes, terminate session, and send ack to clients "session_terminated"
                     elif(self.session_manager.get_session(session_id).session_status == components._SESSION_ACTIVE):#If not, and session is still active then:
                         print("Updating session with new round and updating roles.")
@@ -131,7 +122,7 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
 
     def __clusterize_session(self,session_id):
         session = self.session_manager.get_session(session_id)
-        self.clustering_engine.create_2layer_topology(session,0.5)
+        self.clustering_engine.create_2layer_topology(session,0.3)
         # print("sessions role dictionary: " + str(session.role_dictionary))
         role_dic = json.dumps(session.role_dictionary)
         clusters = self.clustering_engine.form_clusters(session)
@@ -166,17 +157,17 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
             if(ack2):#Check all roles, if all are ready, then send ack to clients "round_ready"
                 self.session_manager.get_session(session_id).get_current_round()['num_registered_clients'] = num_active_nodes
                 self.publish(topic=session_id,func_name="round_ack",msg=" -session_id " + str(session_id) + " -ack round_ready") 
-                print("published round ready\n")
+                # print("published round ready\n")
     
     def __confirm_role(self,session_id,client_id,role):
-        print("confriming role\n")
+        # print("confriming role\n")
         ack = self.session_manager.get_session(session_id).confirm_role(role,client_id) #Set new role for the client as ready 
         if(ack == 0):
             [ack2,num_active_nodes] = self.session_manager.All_Nodes_Ready(session_id)
             if(ack2):#Check all roles, if all are ready, then send ack to clients "round_ready"
                 self.session_manager.get_session(session_id).get_current_round()['num_registered_clients'] = num_active_nodes
                 self.publish(topic=session_id,func_name="round_ack",msg=" -session_id " + str(session_id) + " -ack round_ready") 
-                print("published round ready\n")
+                # print("published round ready\n")
        
     def __new_fl_session_request(self,
                                     session_id,
@@ -246,7 +237,6 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         super().execute_on_msg(header_parts, body) 
         # header_parts = self._get_header_body(msg)
         if header_parts[2] == 'create_fl_session' : 
-            print(body)
             client_id = body.split(' -c_id ')[1].split(' -s_id ')[0]
             session_id  = body.split(' -s_id ')[1]  .split(' -s_time ')[0]
             session_time  = body.split(' -s_time ')[1]  .split(' -s_c_min ')[0]
@@ -319,6 +309,15 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
             client_id  = body.split(' -c_id ')[1]  .split(';')[0]
             self.__client_received_global(  session_id=session_id,
                                             client_id=client_id)
+            
+        if header_parts[2] == 'submit_model_stat' : 
+            session_id = body.split(' -s_id ')[1]  .split(' -c_id ')[0]
+            client_id  = body.split(' -c_id ')[1]  .split(' -round ')[0]
+            round = int(body.split(' -round ')[1]  .split(' -acc ')[0])
+            acc = float(body.split(' -acc ')[1]  .split(' -loss ')[0])
+            loss  = float(body.split(' -loss ')[1]  .split(';')[0])
+            
+            self.__submit_model_stat(session_id,client_id,round,acc,loss)
             
         # if header_parts[2] == 'round_complete' : 
         #     session_id = body.split(' -s_id ')[1]  .split(' -c_id ')[0]

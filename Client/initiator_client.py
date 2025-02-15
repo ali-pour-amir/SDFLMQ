@@ -24,13 +24,14 @@ class MLP(nn.Module):
         x = self.relu(self.fc2(x))
         x = self.fc3(x)  # No activation on last layer (logits for CrossEntropyLoss)
         return x
-FL_ROUNDS = 4
+FL_ROUNDS = 11
+session_name = "session_02"
 # Load MNIST dataset
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
 full_train_dataset = torchvision.datasets.MNIST(root='./data', train=True, transform=transform, download=True)
 test_dataset = torchvision.datasets.MNIST(root='./data', train=False, transform=transform, download=True)
-# Select 5% of the training dataset
-num_samples = int(0.01 * len(full_train_dataset))  # 5% of 60,000 -> 3,000 samples
+
+num_samples = int(0.01 * len(full_train_dataset))
 subset_indices = torch.randperm(len(full_train_dataset))[:num_samples]  # Randomly select indices
 train_dataset = Subset(full_train_dataset, subset_indices)
 # DataLoaders
@@ -52,10 +53,10 @@ fl_client = SDFLMQ_Client(  myID=myid,
                                 broker_port = 1883,
                                 preferred_role="aggregator",
                                 loop_forever=False)
-fl_client.create_fl_session(session_id="session_01",
+fl_client.create_fl_session(session_id=session_name,
                             session_time=timedelta(hours=1),
-                            session_capacity_min= 4,
-                            session_capacity_max= 4,
+                            session_capacity_min= 10,
+                            session_capacity_max= 10,
                             waiting_time=timedelta(minutes=10),
                             fl_rounds=FL_ROUNDS,
                             model_name="mlp",
@@ -65,6 +66,7 @@ fl_client.create_fl_session(session_id="session_01",
 for k in range(FL_ROUNDS):
     # Training Loop
     num_epochs = 5
+    loss = 0
     for epoch in range(num_epochs):
         model.train()
         for images, labels in train_loader:
@@ -81,26 +83,31 @@ for k in range(FL_ROUNDS):
 
     #Sending the Model for Aggregation
     
-    fl_client.set_model('session_01',model)
-    fl_client.send_local('session_01')
+    fl_client.set_model(session_name,model)
+    fl_client.send_local(session_name)
     fl_client.wait_global_update()
-    # model = fl_client.get_model('session_01')
+
+    # Testing the Model
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for images, labels in test_loader:
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+    accuracy = 100 * correct / total
+    print(f"Test Accuracy: {accuracy:.2f}%")
+    fl_client.submit_model_stats(session_name,k,accuracy,loss.item())
+
+    # model = fl_client.get_model(session_name)
 
 
-# Testing the Model
-model.eval()
-correct = 0
-total = 0
-with torch.no_grad():
-    for images, labels in test_loader:
-        images, labels = images.to(device), labels.to(device)
-        outputs = model(images)
-        _, predicted = torch.max(outputs, 1)
-        total += labels.size(0)
-        correct += (predicted == labels).sum().item()
 
-accuracy = 100 * correct / total
-print(f"Test Accuracy: {accuracy:.2f}%")
+
 
 # LOOPING = True
 # while(LOOPING):
