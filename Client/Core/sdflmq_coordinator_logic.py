@@ -122,7 +122,8 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
 
     def __clusterize_session(self,session_id):
         session = self.session_manager.get_session(session_id)
-        self.clustering_engine.create_2layer_topology(session,0.3)
+        # self.clustering_engine.create_2layer_topology(session,0.3)
+        self.clustering_engine.create_central_aggregation_topology(session)
         # print("sessions role dictionary: " + str(session.role_dictionary))
         role_dic = json.dumps(session.role_dictionary)
         clusters = self.clustering_engine.form_clusters(session)

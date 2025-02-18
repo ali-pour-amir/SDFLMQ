@@ -20,6 +20,31 @@ class Clustering_Engine():
     ###_____________________________________________________________________________________________________
     ###_____________________________________________________________________________________________________
     
+    def create_central_aggregation_topology(self,session): #TODO:incorporate 30,70 or 20,80 or ...
+        if(len(session.client_list) < 4):
+            print("Number of clients is not enough for a 2-layer hierarchical clustering.")
+            return
+        
+        session.role_vector = []
+        session.role_dictionary = {}
+        num_aggregators = 1
+
+        num_training_only = session.session_capacity_max - num_aggregators
+        
+        session.role_dictionary['agg_0'+ "_" + str(session.session_id)] = []
+        session.role_vector.append(0)
+        n_counter = 0
+        for j in range(num_training_only):
+            if(n_counter >= num_training_only):
+                break
+            else:
+                session.role_dictionary['agg_0'+ "_" + str(session.session_id)].append('t_'+str(n_counter)+ "_" + str(session.session_id))     
+                # session.role_dictionary['agg_' + str(i) + "_" + str(session.session_id)].append('t_'+str(n_counter)+ "_" + str(session.session_id))
+                n_counter += 1
+            
+
+        return [session.role_vector,session.role_dictionary]
+
     def create_2layer_topology(self,session,percentage_of_aggs): #TODO:incorporate 30,70 or 20,80 or ...
         if(len(session.client_list) < 4):
             print("Number of clients is not enough for a 2-layer hierarchical clustering.")
@@ -52,9 +77,9 @@ class Clustering_Engine():
             for z in range(1,num_aggregators):
                 if(n_counter >= num_training_only):
                     break
-            else:
-                session.role_dictionary['agg_' + str(z) + "_" + str(session.session_id)].append('t_'+str(n_counter)+ "_" + str(session.session_id))
-                n_counter += 1
+                else:
+                    session.role_dictionary['agg_' + str(z) + "_" + str(session.session_id)].append('t_'+str(n_counter)+ "_" + str(session.session_id))
+                    n_counter += 1
 
         return [session.role_vector,session.role_dictionary]
  
