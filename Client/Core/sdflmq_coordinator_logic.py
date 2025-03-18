@@ -80,7 +80,9 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                 self.session_manager.get_session(session_id).add_participant(client_id)#Increase round step
                 if(len(self.session_manager.get_session(session_id).get_participants()) == self.session_manager.get_session(session_id).get_current_round()['num_registered_clients']): #Fix this
                     print("Flagging round as complete.")
+                    session_completed_round = self.session_manager.get_session(session_id).get_current_round()
                     self.session_manager.get_session(session_id).complete_round()
+                    prcessing_delay = session_completed_round['processing_time']
                     self.session_manager.update_session(session_id)
                     # print(self.session_manager.get_session(session_id).session_status)
                     self.publish(topic=session_id,func_name="round_ack",msg=" -session_id " + str(session_id) + " -ack round_complete")#Send ack to clients "round_complete"
@@ -93,8 +95,9 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                         self.publish(topic=session_id,func_name="session_ack",msg= " -session_id " + str(session_id) + " -ack_type terminate_s")        #If yes, terminate session, and send ack to clients "session_terminated"
                     elif(self.session_manager.get_session(session_id).session_status == components._SESSION_ACTIVE):#If not, and session is still active then:
                         print("Updating session with new round and updating roles.")
+                        
                         self.session_manager.get_session(session_id).new_round()#Set new round
-                        self.__update_roles(session_id)
+                        self.__update_roles(session_id,prcessing_delay)
                 break
             
     # def __round_complete(self, session_id, client_id):
@@ -128,7 +131,9 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         role_dic = json.dumps(session.role_dictionary)
         clusters = self.clustering_engine.form_clusters(session)
         session.set_clusters(clusters)
-        roles_vector = self.load_balancer.random_initialize_roles(session)
+        # roles_vector = self.load_balancer.random_initialize_roles(session,"random")
+        # roles_vector = self.load_balancer.random_initialize_roles(session,"pso")
+        roles_vector = self.load_balancer.pso_initialize_roles(session,3)
         # print(roles_vector)
         session.set_roles(roles_vector)
         # print("len nodes: " + str(len(session.nodes)))
@@ -138,12 +143,14 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
                 time.sleep(1)
                 self.publish(topic=self.CoTClT + node.client.client_id,func_name="set_role",msg= " -s_id " + str(session_id) + " -role " + str(node.role)+ " -role_dic " + str(role_dic))
 
-    def __update_roles(self,session_id):
+    def __update_roles(self,session_id,round_processing_delay):
         # print("updating roles")
         session = self.session_manager.get_session(session_id)
         #1) Returns a new role_vector based on the optimizer's suggestion
         #2) Updates the roles according to the new_role_Vector. This only looks into the nodes, and does not need to travers into clusters.
-        self.load_balancer.randomly_update_roles(session)
+        # self.load_balancer.randomly_update_roles(session)
+        print("round processing_delay = " + str(round_processing_delay))
+        self.load_balancer.pso_optimize_roles(session,round_processing_delay)
         #Inform Clients in nodes with NODE_PENDING status
         no_pending_roles = True
         for node in session.nodes:

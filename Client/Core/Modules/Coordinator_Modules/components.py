@@ -110,13 +110,14 @@ class Session():
 
     def get_current_round(self):
         return self.rounds[self.current_round_index]
+    
     def complete_round(self,acc = 0,loss = 0):
         if(self.rounds[self.current_round_index]['status'] == _ROUND_READY):
             self.rounds[self.current_round_index]['status'] = _ROUND_COMPLETE
             self.rounds[self.current_round_index]['acc'] = acc
             self.rounds[self.current_round_index]['loss'] = loss
             self.rounds[self.current_round_index]['completion_time'] = datetime.now()
-            self.rounds[self.current_round_index]['processing_time'] = self.rounds[self.current_round_index]['completion_time'] - self.rounds[self.current_round_index]['starting_time']
+            self.rounds[self.current_round_index]['processing_time'] = (self.rounds[self.current_round_index]['completion_time'] - self.rounds[self.current_round_index]['starting_time']).total_seconds()
             self.current_round_index = self.current_round_index + 1
     
     def new_round(self):

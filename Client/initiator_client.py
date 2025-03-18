@@ -24,7 +24,7 @@ class MLP(nn.Module):
         x = self.relu(self.fc2(x))
         x = self.fc3(x)  # No activation on last layer (logits for CrossEntropyLoss)
         return x
-FL_ROUNDS = 11
+FL_ROUNDS = 10
 session_name = "session_02"
 # Load MNIST dataset
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
@@ -55,8 +55,8 @@ fl_client = SDFLMQ_Client(  myID=myid,
                                 loop_forever=False)
 fl_client.create_fl_session(session_id=session_name,
                             session_time=timedelta(hours=1),
-                            session_capacity_min= 10,
-                            session_capacity_max= 10,
+                            session_capacity_min= 5,
+                            session_capacity_max= 5,
                             waiting_time=timedelta(minutes=10),
                             fl_rounds=FL_ROUNDS,
                             model_name="mlp",

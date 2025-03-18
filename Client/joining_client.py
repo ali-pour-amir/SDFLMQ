@@ -25,7 +25,7 @@ class MLP(nn.Module):
         x = self.relu(self.fc2(x))
         x = self.fc3(x)  # No activation on last layer (logits for CrossEntropyLoss)
         return x
-FL_ROUNDS = 11
+FL_ROUNDS = 10
 session_name = "session_02"
 # Load MNIST dataset
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
