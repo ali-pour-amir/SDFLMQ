@@ -131,6 +131,7 @@ class SDFLMQ_Client(PubSub_Base_Executable) :
         
     def __receive_local(self,session_id, params):
         if(self.arbiter.is_aggregator):
+            print("size of received params in string format: " + str(len(params)))
             model_params = json.loads(params)
             print("accumulating params for " + str(len(self.aggregator.client_model_params)) + " clients.")
             [ack,g_model] = self.aggregator.accumulate_params(session_id,self.controller.get_model(session_id),model_params)

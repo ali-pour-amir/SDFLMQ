@@ -3,7 +3,7 @@ import time as T
 import re
 import os
 from .topics import MQTTFC_Base
-
+from random import randint
 msg_size_limit = 10000000 #characters
 
 #
@@ -145,12 +145,14 @@ class PubSub_Base_Executable:
             self.msg_batch_queue.pop(payload_id)
             print(len(self.msg_batch_queue))
             print("Batches merged.")
+            print("payload size: " + str(len(msg_payload)))
             return msg_payload
 
         def MQTT_msg_split(self,msg,batch_size):
-            payload_id = re.sub('[ :]','',str(T.asctime()))
+            payload_id = str(re.sub('[ :]','',str(T.asctime()))) + str(randint(0,1000000))
             msg_splits = []
             print("Splitting payload into " + str(int(len(msg)/batch_size)+1) + " batches.")
+            print("payload size: " + str(len(msg)))
             print("Payload id is: " + payload_id)
             for j in range(0,len(msg),batch_size):
                 i = int(j/batch_size)

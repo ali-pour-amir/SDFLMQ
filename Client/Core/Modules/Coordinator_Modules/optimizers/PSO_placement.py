@@ -42,17 +42,17 @@ class Swarm :
 class PSO:
     def __init__(self, particle_num, particle_size, num_clients, random_poses):
 
-        self.iw = .01                                     # Inertia Weight (Higher => Exploration | Lower => Exploitation)   (0.1 , 0.5)
-        self.c1 = .01                                     # Pbest coefficient (0.01 , 0.1)
+        self.iw = .1                                     # Inertia Weight (Higher => Exploration | Lower => Exploitation)   (0.1 , 0.5)
+        self.c1 = .1                                     # Pbest coefficient (0.01 , 0.1)
         self.c2 = 1                                       # Gbest coefficient 
-        self.pop_n = 10                                    # Population number (3 , 5 , 10 , 15 , 20*)
-        self.max_iter = 100  
+        self.pop_n = particle_num                                    # Population number (3 , 5 , 10 , 15 , 20*)
+        self.max_iter = 1000  
         self.particle_size = particle_size
 
         # System parameters
-        self.randomness_seed = 10
-        self.tracking_mode = True   
-        self.velocity_factor = 0.1                       # Increasing velocity_factor causes more exploration resulting higher fluctuations in the particles plot (default range between 0 and 1 (Guess))
+        # self.randomness_seed = 10
+        self.tracking_mode = False   
+        self.velocity_factor = 0.15                       # Increasing velocity_factor causes more exploration resulting higher fluctuations in the particles plot (default range between 0 and 1 (Guess))
 
         self.particle_counter = -1
         self.iter_counter = -1
@@ -155,16 +155,29 @@ class PSO:
 
     def get_next_particle(self):
         self.particle_counter += 1
+        
         if(self.particle_counter >= len(self.swarm.particles)):
             self.iter_counter += 1
             self.particle_counter = 0
-        return self.swarm.particles[self.particle_counter].pos
+
+        print("particle index: " + str(self.particle_counter))
+        print("len swarm particles: " + str(len(self.swarm.particles)))
+        next_particle = copy.copy(self.swarm.particles[self.particle_counter].pos)
+
+        return next_particle
 
     def optimize(self,total_processing_delay):    
 
-        if(self.swarm.particles[self.particle_counter].best_pos_fitness == None):   
-            self.swarm.particles[self.particle_counter].fitness = self.processing_fitness(total_processing_delay)
-            self.swarm.particles[self.particle_counter].best_pos_fitness = self.swarm.particles[self.particle_counter].fitness
+        if(self.swarm.particles[self.particle_counter].best_pos_fitness == None or 
+           self.swarm.particles[self.particle_counter].fitness == None):
+            new_fitness = self.processing_fitness(total_processing_delay)
+            self.swarm.particles[self.particle_counter].fitness = copy.copy(new_fitness)
+            self.swarm.particles[self.particle_counter].best_pos_fitness = copy.copy(new_fitness)
+            if(self.particle_counter == 0):
+                self.swarm.global_best_particle = copy.deepcopy(self.swarm.particles[self.particle_counter])
+            elif(self.swarm.particles[self.particle_counter].fitness > self.swarm.global_best_particle.fitness):
+                self.swarm.global_best_particle = copy.deepcopy(self.swarm.particles[self.particle_counter]) 
+
             return
 
         new_velocity = self.updateVelocity(self.swarm.particles[self.particle_counter].velocity,

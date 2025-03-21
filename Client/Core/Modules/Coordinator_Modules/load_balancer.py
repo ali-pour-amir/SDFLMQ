@@ -11,7 +11,7 @@ class Load_Balancer():
         self.optimizers = {}
         self.role_vector_size = {}
 
-    def random_initialize_roles(self,session, optimizer = "random"):
+    def random_initialize_roles(self,session):
         #TODO: Look into the list of nodes, and the list of clients, and associate the clients to the roles.
         #For the assignment, the input argument to the set_roles should be built, which is the role_vector.
         #Based on the policy, the assigments can varry. The basic policy is that a client who has agreed to be aggregator should be assigned to agg or agg_t nodes.
@@ -38,7 +38,6 @@ class Load_Balancer():
     
 
     def pso_initialize_roles(self,session,particle_num):
-       
         rand_poses = []
         for i in range(particle_num):
             role_vector_counter = 0
@@ -66,11 +65,26 @@ class Load_Balancer():
         self.role_vector_size[session.session_id] = len(session.role_vector)
         return session.role_vector
     
-    def greedy_optimize_roles(self,session):
-        #TODO: Read the calculated cost of FL in the previous round, and accordingly build a new role_vector, and feed it to the update_roles.
-        session.update_roles([])
-        return []
-    
+    def initiate_round_robin_no_shuffle(self,session):
+        clients = list(range(0,10))
+        # Total number of clients
+        total_clients = len(clients)
+        num_aggregators = len(session.role_vector)
+        round_num = session.current_round_index
+        # Determine the start index for the current round
+        start_index = (round_num) * num_aggregators % total_clients
+        
+        # Select `num_aggregators` clients in a round-robin manner
+        aggregators = []
+        for i in range(num_aggregators):
+            aggregator_index = (start_index + i) % total_clients
+            aggregators.append(clients[aggregator_index])
+        
+        print("Initial aggregators: "  + str(aggregators))
+        session.role_vector = aggregators
+        self.role_vector_size[session.session_id] = len(session.role_vector)
+        return aggregators
+   
     def randomly_update_roles(self,session):
         #TODO: Read the calculated cost of FL in the previous round, and accordingly build a new role_vector, and feed it to the update_roles.
         role_vector_counter = 0
@@ -90,18 +104,34 @@ class Load_Balancer():
         session.update_roles(init_role_vector)
         return session.role_vector
 
-    def uniformly_update_roles(self,session):
-        #TODO: Read the calculated cost of FL in the previous round, and accordingly build a new role_vector, and feed it to the update_roles.
-        session.update_roles([])
-        return []
+
+    def round_robin_no_shuffle(self,session):
+        clients = list(range(0,10))
+        # Total number of clients
+        total_clients = len(clients)
+        num_aggregators = len(session.role_vector)
+        round_num = session.current_round_index
+        # Determine the start index for the current round
+        start_index = (round_num) * num_aggregators % total_clients
+        
+        # Select `num_aggregators` clients in a round-robin manner
+        aggregators = []
+        for i in range(num_aggregators):
+            aggregator_index = (start_index + i) % total_clients
+            aggregators.append(clients[aggregator_index])
+        
+        print("This turn's aggregators: "  + str(aggregators))
+        session.update_roles(aggregators)
+        return aggregators
     
     def pso_optimize_roles(self,session,round_processing_delay):
         #TODO: Read the calculated cost of FL in the previous round, and accordingly build a new role_vector, and feed it to the update_roles.
         
         self.optimizers[session.session_id].optimize(round_processing_delay)
         new_suggested_role_vector = self.optimizers[session.session_id].get_next_particle()
-        session.update_roles(new_suggested_role_vector)
+        print(new_suggested_role_vector)
 
+        session.update_roles(new_suggested_role_vector)
         return new_suggested_role_vector
 
     
