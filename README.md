@@ -33,7 +33,7 @@ git clone https://github.com/ali-pour-amir/SDFLMQ.git
 The framework then can be installed using the following command:
 
 ```bash
-cd SDFLMQ\
+cd SDFLMQ
 pip install -e .
 ```
 
