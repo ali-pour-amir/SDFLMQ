@@ -67,13 +67,15 @@ https://mosquitto.org/download/
 
 ### EMQX Paho Client
 
-*Details on using the EMQX Paho MQTT client with SDFLMQ.*
+To provide SDFLMQ with communication using publish/subscribe, we integrated the EMQX Paho client. This library is already included in the list of dependencies in the setup.py file.
+To alter the EMQX installation, you may first remove the EMQX Paho Client library from the list of dependencies in the setup.py file, then follow the instructions here:
+https://www.emqx.com/en/blog/how-to-use-mqtt-in-python
 
 ---
 
 ## Example with MNIST Dataset
 
-*Provide a walkthrough or link to an example using the MNIST dataset for demonstration.*
+Here we present a sample SDFLMQ setup to collectively train a multi-layer perceptron model on the MNIST dataset. We set a session for 4 clients to perform 10 FL rounds. Following are steps to take to setup the clients' program, the coordinator program, and the code snippets.
 
 ### Coordinator
 
