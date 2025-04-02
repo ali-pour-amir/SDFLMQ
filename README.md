@@ -24,6 +24,11 @@ A parameter server logic is also provided as an additional component under devel
 
 ## Integration
 
+To use the framework, you can clone the GitHub project first:
+
+```bash
+git clone https://github.com/ali-pour-amir/SDFLMQ.git
+
 ### Installation and Setup
 
 *Provide installation steps and dependencies here.*
