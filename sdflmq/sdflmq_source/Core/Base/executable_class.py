@@ -54,7 +54,7 @@ class PubSub_Base_Executable:
                                 self.connection_timeout)
             
             
-            self.root_directory = self.id+"_data"
+            self.root_directory =  os.getcwd() + "/" + self.id+"_data"
             if(os.path.isdir(self.root_directory) == False):
                 os.mkdir(self.root_directory)
 

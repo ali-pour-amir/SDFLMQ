@@ -131,9 +131,9 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         role_dic = json.dumps(session.role_dictionary)
         clusters = self.clustering_engine.form_clusters(session)
         session.set_clusters(clusters)
-        roles_vector = self.load_balancer.initiate_round_robin_no_shuffle(session)
+        # roles_vector = self.load_balancer.initiate_round_robin_no_shuffle(session)
         # roles_vector = self.load_balancer.random_initialize_roles(session)
-        # roles_vector = self.load_balancer.pso_initialize_roles(session,5)
+        roles_vector = self.load_balancer.pso_initialize_roles(session,5)
         # print(roles_vector)
         session.set_roles(roles_vector)
         # print("len nodes: " + str(len(session.nodes)))
@@ -150,9 +150,9 @@ class DFLMQ_Coordinator(PubSub_Base_Executable) :
         #2) Updates the roles according to the new_role_Vector. This only looks into the nodes, and does not need to travers into clusters.
         print("round processing_delay = " + str(round_processing_delay))
 
-        self.load_balancer.round_robin_no_shuffle(session)
+        # self.load_balancer.round_robin_no_shuffle(session)
         # self.load_balancer.randomly_update_roles(session)       
-        # self.load_balancer.pso_optimize_roles(session,round_processing_delay)
+        self.load_balancer.pso_optimize_roles(session,round_processing_delay)
 
         #Inform Clients in nodes with NODE_PENDING status
         no_pending_roles = True

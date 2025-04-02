@@ -1,6 +1,6 @@
 import tkinter as tk
 import time
-import controller_core_modules
+from .modules import controller_core_modules
 
 class Controller_Dashboard:
     ##__________________________________________MQTT___________________________________
@@ -267,10 +267,12 @@ class Controller_Dashboard:
         self.ac_bt8.config(command=self.Clients_Introduce)        
 
     
+def main():
+    dashbooard = Controller_Dashboard()
+    dashbooard.root.mainloop()
 
 #____________________________________________GUI START_____________________________________________
 
-dashbooard = Controller_Dashboard()
-
-dashbooard.root.mainloop()
-
+if __name__ == "__main__":
+    main()
+	

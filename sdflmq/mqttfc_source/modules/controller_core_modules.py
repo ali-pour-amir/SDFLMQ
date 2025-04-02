@@ -1,22 +1,23 @@
 #Here, the core modules of MQTT Fleet Control is placed
-import broker_manager
-import clients_manager
-import executable_manager
+#import broker_manager
+from .core import clients_manager
+#import executable_manager
 import paho.mqtt.client as mqtt
 import os
 import threading
 import json
 import time as T
-from MQTTFC_Procedures import MQTTFC_Procedures
+import importlib.resources as pkg_resources
+from .core.MQTTFC_Procedures import MQTTFC_Procedures
+from . import metadata
 
 class Server_Controller:
     
     
-    sub_topics_directory = "metadata/topics_to_subscribe.json"
-    pub_topics_directory = "metadata/topics_to_publish.json"
-
-    broker_mtf_directory = "metadata/broker_metadata.json"
-    client_mtf_directory = "metadata/client_metadata.json"
+    sub_topics_directory =  os.path.dirname(os.path.abspath(__file__)) + "/metadata/topics_to_subscribe.json"
+    pub_topics_directory =  os.path.dirname(os.path.abspath(__file__)) + "/metadata/topics_to_publish.json"
+    broker_mtf_directory =  os.path.dirname(os.path.abspath(__file__)) + "/metadata/broker_metadata.json"
+    client_mtf_directory =  os.path.dirname(os.path.abspath(__file__)) + "/metadata/client_metadata.json"
     
     registered_executables = []
     
