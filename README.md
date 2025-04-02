@@ -22,7 +22,10 @@ A parameter server logic is also provided as an additional component under devel
 
 ---
 
-## Integration
+## Installation
+In the following, guidelines are provided to install and integrate SDFLMQ and it's dependencies. Ubuntu 18.xx or higher is considered the default operating system. Nonetheless, SDFLMQ itself is not depended on Ubuntu or any other operating system. Dependencies however may depend, or follow different installation and integration steps. Link for further information on how some of the core dependencies can be integrated are provided which may provide information on installation in other operating systems.
+
+### SDFLMQ Installation
 
 To use the framework, you can clone the GitHub project first:
 
@@ -37,13 +40,30 @@ cd SDFLMQ
 pip install -e .
 ```
 
-### Installation and Setup
-
-*Provide installation steps and dependencies here.*
-
 ### MQTT with Mosquitto
 
-*Explain how to configure and use the Mosquitto MQTT broker.*
+SDFLMQ does not depend on any specific MQTT broker implementation. However, it is commonly tested with Mosquitto for local testing and simulation. 
+You may install Mosquitto if you wish to use the local system as the broker. To install the broker 
+
+To install Mosquitto you can use the following command:
+
+```bash
+sudo apt-get install mosquitto
+```
+To run the broker as a service, you can use the following command:
+
+```bash
+systemctl start mosquitto
+```
+
+To stop the Mosquitto broker service, you can use the following command:
+
+```bash
+systemctl stop mosquitto
+```
+
+You can follow the link below also for further instructions on how to install Mosquitto on other operation systems, using different package managers:
+https://mosquitto.org/download/
 
 ### EMQX Paho Client
 
