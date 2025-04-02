@@ -1,4 +1,4 @@
-# SDFLMQ
+# SDFLMQ: A Semi-Decentralized Federated Learning Framework over Publish/Subscribe Communication Model
 
 **Semi-Decentralized Federated Learning over MQTT (SDFLMQ)** is a federated learning framework with a special focus on distributing the load of aggregation to the contributing client machines. MQTT is used at the core of the framework to manage C2C communication.
 
