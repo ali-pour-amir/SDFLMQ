@@ -44,6 +44,10 @@ SDFLMQ is based on a tailor-made remote function call (RFC) infrastructure calle
 
 *Explain how new clients can join and participate in the learning process.*
 
+### MQTTFC Dashboard
+
+*Explain the steps to run and use the MQTTFC dashboard.*
+
 ---
 
 ## Example with MNIST Dataset
