@@ -30,6 +30,13 @@ To use the framework, you can clone the GitHub project first:
 git clone https://github.com/ali-pour-amir/SDFLMQ.git
 ```
 
+The framework then can be installed using the following command:
+
+```bash
+cd SDFLMQ\
+pip install -e .
+```
+
 ### Installation and Setup
 
 *Provide installation steps and dependencies here.*
