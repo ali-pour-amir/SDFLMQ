@@ -32,6 +32,12 @@ SDFLMQ is based on a tailor-made remote function call (RFC) infrastructure calle
 
 *Details on using the EMQX Paho MQTT client with SDFLMQ.*
 
+---
+
+## Example with MNIST Dataset
+
+*Provide a walkthrough or link to an example using the MNIST dataset for demonstration.*
+
 ### Coordinator
 
 *Describe the role and setup of the Coordinator node.*
@@ -50,12 +56,10 @@ SDFLMQ is based on a tailor-made remote function call (RFC) infrastructure calle
 
 ---
 
-## Example with MNIST Dataset
-
-*Provide a walkthrough or link to an example using the MNIST dataset for demonstration.*
-
----
-
 ## Docker Setup
 
 *Instructions for using Docker to run the SDFLMQ framework.*
+
+# Citation
+
+*Provide reference blocks for citation in both Latex and Docx document formats.*
