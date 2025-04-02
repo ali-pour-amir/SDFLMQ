@@ -8,8 +8,8 @@ setup(
     description='A semi-decentralized federated learning framework for Python',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url='https://github.com/ali-pour-amir/SDFLMQ',  # Optional
-    packages=find_packages(),  # Automatically finds packages like fl_lib, fl_lib.utils etc.
+    url='https://github.com/ali-pour-amir/SDFLMQ', 
+    packages=find_packages(),  
     include_package_data=True,
     package_data={
         "sdflmq.mqttfc_source.modules": ["metadata/*.json"],
@@ -22,7 +22,7 @@ setup(
     ],
     classifiers=[
         'Programming Language :: Python :: 3',
-        'License :: OSI Approved :: MIT License',  # or your license
+        'License :: OSI Approved :: MIT License', 
         'Operating System :: OS Independent',
     ],
     python_requires='>=3.7',
