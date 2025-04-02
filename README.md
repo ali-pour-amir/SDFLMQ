@@ -28,6 +28,7 @@ To use the framework, you can clone the GitHub project first:
 
 ```bash
 git clone https://github.com/ali-pour-amir/SDFLMQ.git
+```
 
 ### Installation and Setup
 
