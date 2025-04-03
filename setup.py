@@ -30,6 +30,7 @@ setup(
     entry_points={
         'console_scripts': [
             'mqttfc-dashboard = sdflmq.mqttfc_source.controller_dashboard:main',
+            'sdflmq_coordinator = sdflmq.sdflmq_source.examples.coordinator:main',
         ],
     },
 )
