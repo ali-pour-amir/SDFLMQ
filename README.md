@@ -29,6 +29,8 @@ In the following, guidelines are provided to install and integrate SDFLMQ and it
 
 ### SDFLMQ Installation
 
+#### Clonning from GitHub
+
 To use the framework, you can clone the GitHub project first:
 
 ```bash
@@ -40,6 +42,14 @@ While in the SDFLMQ root directory, the framework can be installed using the fol
 ```bash
 cd SDFLMQ
 pip install -e .
+```
+
+#### Through PyPi
+
+SDFLMQ can also be installed directly from the PyPi. You can install SDFLMQ using pip:
+
+```bash
+pip install sdflmq==0.1.0.4
 ```
 
 ### MQTT with Mosquitto
