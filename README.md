@@ -20,6 +20,8 @@ Aside from that, client modules can be found under the Core/Modules/Clint_Module
 
 A parameter server logic is also provided as an additional component under development, which can be used for model organizational purposes. The parameter server is a specification of MQTT fleet control's base executable class, which has a singular module used for global update synchronization. The functionality of sdflmq to run FL rounds however does not depend on this logic. Only the client logic and coordinator logic are essential to the core functionality of sdfmlq regarding core FL operation.
 
+![Framework Architecture](images/architecture.png)
+
 ---
 
 ## Installation
@@ -394,7 +396,16 @@ print(f"Test Accuracy: {accuracy:.2f}%")
 
 ## MQTTFC Dashboard
 
-*Explain the steps to run and use the MQTTFC dashboard.*
+MQTTFC controller dashboard is also installed by default with the framework installation. It can be invoked using the following command:
+
+```bash
+mqttfc_dashboard
+```
+
+A screenshot of the dashboard showing the properties of the running coordinator is given below:
+
+
+![MQTTFC Dashboard](images/dashboard.png)
 
 ---
 
@@ -404,4 +415,18 @@ print(f"Test Accuracy: {accuracy:.2f}%")
 
 # Citation
 
-*Provide reference blocks for citation in both Latex and Docx document formats.*
+If you are using the SDFLMQ framework, we appreciate if you could support us by citing our paper:
+
+```latex
+
+@article{Ali-Pour2025SDFLMQ,
+  author  = {Amir Ali-Pour and Julien Gascon-Samson},
+  title   = {{SDFLMQ: A Semi-Decentralized Federated Learning Framework over MQTT}},
+  journal = {arXiv preprint},
+  year    = {2025},
+  archivePrefix = {arXiv},
+  eprint  = {2503.13624},
+  primaryClass = {cs.LG},
+  url     = {https://arxiv.org/abs/2503.13624}
+}
+```
