@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='sdflmq',
-    version='0.1.0.4',
+    version='0.1.0.6',
     author='Amir Ali-Pour',
     author_email='alipouramir93@gmail.com',
     description='A semi-decentralized federated learning framework for Python',
