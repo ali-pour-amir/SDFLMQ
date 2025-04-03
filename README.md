@@ -98,7 +98,7 @@ The above coordinator connects to a locally running broker service through port 
 A default coordinator similar to the above is also installed with the SDFLMQ installation. You can invoke a coordinator to connect to a local broker using the following bash command:
 
 ```bash
-sdflmq_coordinator coordinator_id=my_coord_id broker_ip=localhost broker_port=1883
+sdflmq_coordinator --coordinator_id my_coord_id --broker_ip localhost --broker_port 1883
 ```
 
 ### Initiator Client
