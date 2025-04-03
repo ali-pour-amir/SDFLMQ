@@ -33,7 +33,7 @@ To use the framework, you can clone the GitHub project first:
 git clone https://github.com/ali-pour-amir/SDFLMQ.git
 ```
 
-The framework then can be installed using the following command:
+While in the SDFLMQ root directory, the framework can be installed using the following command:
 
 ```bash
 cd SDFLMQ
@@ -79,7 +79,27 @@ Here we present a sample SDFLMQ setup to collectively train a multi-layer percep
 
 ### Coordinator
 
-*Describe the role and setup of the Coordinator node.*
+To enable SDFLMQ, a coordinator must be invoked first. One can simply create a script and instantiate from the coordinator logic class like in the following:
+
+```python
+from sdflmq import DFLMQ_Coordinator
+import time
+
+coordinator_client = DFLMQ_Coordinator(myID      = 'my_coordinator',
+                                    broker_ip    = 'localhost' ,
+                                    broker_port  = 1883,
+                                    loop_forever = True,
+                                    plot_stats   = False)
+
+```
+
+The above coordinator connects to a locally running broker service through port number 1883.
+
+A default coordinator similar to the above is also installed with the SDFLMQ installation. You can invoke a coordinator to connect to a local broker using the following bash command:
+
+```bash
+sdflmq_coordinator --coordinator_id my_coord_id --broker_ip localhost --broker_port 1883
+```
 
 ### Initiator Client
 
