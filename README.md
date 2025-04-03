@@ -430,3 +430,5 @@ If you are using the SDFLMQ framework, we appreciate if you could support us by 
   url     = {https://arxiv.org/abs/2503.13624}
 }
 ```
+
+The link to a pre-print of our paper can be found here: https://arxiv.org/abs/2503.13624
