@@ -49,7 +49,7 @@ pip install -e .
 SDFLMQ can also be installed directly from the PyPi. You can install SDFLMQ using pip:
 
 ```bash
-pip install sdflmq==0.1.0.4
+pip install sdflmq
 ```
 
 ### MQTT with Mosquitto
