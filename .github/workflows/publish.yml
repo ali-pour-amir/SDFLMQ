@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.7'  # Or whatever version you're targeting
+          python-version: '3.9'  # Or whatever version you're targeting
 
       - name: Install build dependencies
         run: |
